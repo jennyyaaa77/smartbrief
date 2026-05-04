@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartBrief 智能简报</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Source+Serif+4:wght@400;600;700&family=Inter:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&family=Open+Sans:wght@300;400;600;700&family=Lato:wght@300;400;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--pri:#1a365d;--pri-l:#2c5282;--acc:#3182ce;--acc-l:#ebf4ff;--acc-g:rgba(49,130,206,.25);--ok:#10b981;--ok-l:#d1fae5;--warn:#f59e0b;--err:#ef4444;--neu:#475569;--neu-l:#94a3b8;--bg:#f8fafc;--bgc:#fff;--bgi:#fff;--tx:#1e293b;--tx2:#64748b;--txm:#94a3b8;--bd:#e2e8f0;--bdh:#cbd5e1;--sh:0 1px 3px rgba(0,0,0,.08);--shm:0 4px 6px -1px rgba(0,0,0,.08);--shl:0 10px 15px -3px rgba(0,0,0,.08);--shxl:0 20px 25px -5px rgba(0,0,0,.1);--rad:10px;--radl:14px;--font:'DM Sans',sans-serif;--fontd:'Source Serif 4',serif;--bpri:#1a365d;--bsec:#2c5282;--tr:.2s cubic-bezier(.4,0,.2,1)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font);background:var(--bg);color:var(--tx);line-height:1.6;-webkit-font-smoothing:antialiased;min-height:100vh}
+.hdr{position:sticky;top:0;z-index:100;background:linear-gradient(135deg,#0f172a,#1e293b);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 20px rgba(0,0,0,.2)}
+.hdr .hl{display:flex;flex-direction:column;gap:2px}
+.hdr h1{color:#fff;font-size:22px;font-weight:700;font-family:var(--fontd);letter-spacing:-.3px}
+.hdr .sub{color:rgba(255,255,255,.55);font-size:13px;font-weight:400;letter-spacing:.3px}
+.hdr .hr{display:flex;align-items:center;gap:8px}
+.hbtn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.85);padding:7px 14px;border-radius:8px;font-size:13px;cursor:pointer;transition:all var(--tr);display:flex;align-items:center;gap:6px;font-family:var(--font)}
+.hbtn:hover{background:rgba(255,255,255,.15);color:#fff}
+.main{max-width:1080px;margin:0 auto;padding:28px 24px 60px}
+.card{background:var(--bgc);border-radius:var(--radl);border:1px solid var(--bd);box-shadow:var(--sh);padding:28px 30px;margin-bottom:22px;transition:box-shadow var(--tr);position:relative}
+.card:hover{box-shadow:var(--shm)}
+.stit{font-family:var(--fontd);font-size:18px;font-weight:700;color:var(--pri);margin-bottom:4px;display:flex;align-items:center;gap:10px}
+.stit .badge{background:var(--acc);color:#fff;font-size:11px;font-family:var(--font);font-weight:600;padding:2px 10px;border-radius:20px}
+.sdesc{color:var(--tx2);font-size:13.5px;margin-bottom:20px}
+.drag-handle{position:absolute;top:12px;right:16px;width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--txm);cursor:grab;font-size:14px;transition:all var(--tr);z-index:5}
+.drag-handle:hover{background:var(--acc-l);color:var(--acc)}
+.mod-card{position:relative}
+.mod-card.sortable-ghost{opacity:.4;background:var(--acc-l)}
+.mod-card.sortable-chosen{box-shadow:var(--shxl)}
+.saved-tpl-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--bd);border-radius:8px;margin-bottom:8px;background:var(--bg);transition:all var(--tr)}
+.saved-tpl-item:hover{box-shadow:var(--shm);border-color:var(--bdh)}
+.saved-tpl-item .stpl-name{flex:1;font-weight:600;font-size:13.5px;color:var(--tx)}
+.saved-tpl-item .stpl-date{font-size:11px;color:var(--txm)}
+.saved-tpl-item .stpl-actions{display:flex;gap:4px}
+.tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.tc{border:2px solid var(--bd);border-radius:var(--rad);padding:18px 16px;cursor:pointer;transition:all var(--tr);background:var(--bgc);position:relative}
+.tc:hover{transform:translateY(-2px);box-shadow:var(--shl);border-color:var(--bdh)}
+.tc.sel{border-color:var(--acc);background:var(--acc-l);box-shadow:0 0 0 3px var(--acc-g),var(--shm)}
+.tc .tci{font-size:24px;margin-bottom:8px;display:block;color:var(--acc)}
+.tc .tct{font-weight:600;font-size:14.5px;color:var(--tx);margin-bottom:4px}
+.tc .tcd{font-size:12.5px;color:var(--tx2);margin-bottom:10px;line-height:1.5}
+.tc .tags{display:flex;flex-wrap:wrap;gap:5px}
+.tc .tag{font-size:11px;padding:2px 8px;border-radius:20px;background:rgba(49,130,206,.08);color:var(--acc);font-weight:500}
+.tc.sel .tag{background:rgba(49,130,206,.15)}
+.uz{border:2px dashed var(--bd);border-radius:var(--rad);padding:28px;text-align:center;margin-top:14px;transition:all var(--tr);cursor:pointer;display:none;background:var(--bg)}
+.uz.vis{display:block}
+.uz:hover,.uz.dragover{border-color:var(--acc);background:var(--acc-l)}
+.uz i{font-size:28px;color:var(--acc);margin-bottom:8px}
+.uz p{color:var(--tx2);font-size:13px}
+.uz .ftypes{font-size:11px;color:var(--txm);margin-top:4px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg.full{grid-column:1/-1}
+.fl{font-size:13px;font-weight:500;color:var(--tx);display:flex;align-items:center;gap:4px}
+.fi,.fsel,.fta{padding:9px 13px;border:1px solid var(--bd);border-radius:8px;font-size:14px;font-family:var(--font);color:var(--tx);background:var(--bgi);transition:border-color var(--tr),box-shadow var(--tr);outline:none;width:100%}
+.fi:focus,.fsel:focus,.fta:focus{border-color:var(--acc);box-shadow:0 0 0 3px var(--acc-g)}
+.fta{resize:vertical}
+.fi-sm{padding:7px 10px;font-size:13px}
+.mg{border:1px solid var(--bd);border-radius:var(--rad);padding:18px;margin-bottom:14px;background:var(--bg);transition:all var(--tr)}
+.mgh{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.mi{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:10px;border:1px solid var(--bd);border-radius:8px;background:var(--bgc);margin-bottom:8px}
+.mi .fi,.mi .fsel{flex:1;min-width:80px}
+.mi-label{font-size:11px;color:var(--tx2);font-weight:500;min-width:50px;text-align:right}
+.mi-calc{font-size:12px;padding:4px 8px;border-radius:5px;font-weight:600;white-space:nowrap}
+.mi-calc.up{background:var(--ok-l);color:#059669}
+.mi-calc.down{background:#fef2f2;color:var(--err)}
+.mi-calc.flat{background:#f1f5f9;color:var(--neu)}
+.comp-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px;padding-top:6px;border-top:1px dashed var(--bd)}
+.comp-item{display:flex;align-items:center;gap:4px}
+.comp-fields{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.comp-field{display:flex;align-items:center;gap:4px}
+.comp-field .fi{max-width:110px}
+.bic{width:34px;height:34px;border-radius:7px;border:1px solid var(--bd);background:var(--bgc);color:var(--neu);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all var(--tr);font-size:13px}
+.bic:hover{background:#fee2e2;color:var(--err);border-color:#fca5a5}
+.bic.add:hover{background:var(--acc-l);color:var(--acc);border-color:var(--acc)}
+.btn{padding:9px 18px;border-radius:8px;font-size:13.5px;font-weight:500;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:7px;transition:all var(--tr);font-family:var(--font);white-space:nowrap}
+.btn-p{background:var(--acc);color:#fff}
+.btn-p:hover{background:#2b6cb0;box-shadow:var(--shm)}
+.btn-s{background:var(--ok);color:#fff}
+.btn-s:hover{background:#059669}
+.btn-o{background:transparent;color:var(--acc);border:1px solid var(--acc)}
+.btn-o:hover{background:var(--acc-l)}
+.btn-g{background:var(--bg);color:var(--neu);border:1px solid var(--bd)}
+.btn-g:hover{background:#f1f5f9;border-color:var(--bdh)}
+.btn-d{background:transparent;color:var(--err);border:1px solid #fca5a5}
+.btn-d:hover{background:#fef2f2}
+.bgrp{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.chart-block{border:1px solid var(--bd);border-radius:var(--rad);padding:20px;margin-bottom:16px;background:var(--bg);position:relative}
+.chart-block.sortable-ghost{opacity:.4}
+.cb-hdr{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.cb-hdr .drag-h{cursor:grab;color:var(--txm);font-size:14px}
+.cb-hdr .drag-h:hover{color:var(--acc)}
+.ccfg{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.cprev{border:1px solid var(--bd);border-radius:var(--rad);padding:16px;background:var(--bgc);min-height:260px;display:flex;align-items:center;justify-content:center}
+.cprev canvas{max-width:100%;max-height:320px}
+.tbl-prev{width:100%;border-collapse:collapse;font-size:13px}
+.tbl-prev th{background:var(--acc);color:#fff;padding:8px 12px;text-align:left;font-weight:600;font-size:12px;position:sticky;top:0}
+.tbl-prev td{padding:7px 12px;border-bottom:1px solid var(--bd)}
+.tbl-prev tr:hover td{background:var(--acc-l)}
+.img-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-top:14px}
+.img-card{border:1px solid var(--bd);border-radius:var(--rad);overflow:hidden;background:var(--bgc);position:relative}
+.img-card img{width:100%;height:150px;object-fit:cover;display:block}
+.img-card .ic-cap{padding:8px 10px}
+.img-card .ic-cap input{width:100%;border:none;background:transparent;font-size:12px;color:var(--tx2);outline:none;font-family:var(--font)}
+.img-card .ic-rm{position:absolute;top:6px;right:6px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,.6);color:#fff;border:none;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity var(--tr)}
+.img-card:hover .ic-rm{opacity:1}
+.ai-res{background:linear-gradient(135deg,#ebf4ff,#f0f9ff);border:1px solid rgba(49,130,206,.2);border-radius:var(--rad);padding:20px;margin-top:16px;display:none;font-size:14px;line-height:1.75;color:var(--tx);min-height:80px;position:relative}
+.ai-res.vis{display:block;animation:fadeIn .3s ease}
+.ai-lbl{font-size:11px;font-weight:600;color:var(--acc);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.edwrap{border:1px solid var(--bd);border-radius:var(--rad);overflow:hidden}
+.edwrap .ql-toolbar{border:none;border-bottom:1px solid var(--bd);background:var(--bg)}
+.edwrap .ql-container{border:none;min-height:350px;font-size:14.5px;font-family:var(--font)}
+.edwrap .ql-editor{min-height:350px;padding:20px}
+.bpanel{display:none;animation:fadeIn .3s ease}
+.bpanel.vis{display:block}
+.prev-c{display:none;margin-top:18px;border:1px solid var(--bd);border-radius:var(--radl);overflow:hidden;box-shadow:var(--shl)}
+.prev-c.vis{display:block;animation:fadeIn .3s ease}
+.prev-h{background:var(--bg);padding:12px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bd)}
+.prev-h span{font-weight:600;font-size:14px;color:var(--tx)}
+.prev-if{width:100%;height:750px;border:none;background:#fff}
+.toast-c{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{background:#1e293b;color:#fff;padding:12px 20px;border-radius:10px;font-size:13.5px;box-shadow:var(--shxl);display:flex;align-items:center;gap:10px;animation:toastIn .3s ease;min-width:240px;font-family:var(--font)}
+.toast.rm{animation:toastOut .3s ease forwards}
+.toast i{font-size:15px}
+.toast.success i{color:var(--ok)}.toast.warning i{color:var(--warn)}.toast.error i{color:var(--err)}.toast.info i{color:var(--acc)}
+.sh-res{display:none;margin-top:14px;padding:14px 18px;background:var(--bg);border:1px solid var(--bd);border-radius:8px;font-size:13px;word-break:break-all}
+.sh-res.vis{display:block}
+.sh-lnk{color:var(--acc);font-weight:500}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes toastIn{from{opacity:0;transform:translateX(60px)}to{opacity:1;transform:translateX(0)}}
+@keyframes toastOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(60px)}}
+body.dark{--bg:#0f172a;--bgc:#1e293b;--bgi:#1e293b;--tx:#e2e8f0;--tx2:#94a3b8;--txm:#64748b;--bd:#334155;--bdh:#475569;--pri:#93c5fd;--neu:#94a3b8}
+body.dark .hdr{background:linear-gradient(135deg,#020617,#0f172a)}
+body.dark .mg,body.dark .chart-block{background:#0f172a}
+body.dark .uz{background:#0f172a}
+body.dark .ai-res{background:linear-gradient(135deg,#1e293b,#0f172a);border-color:#334155}
+body.dark .mod-card[data-module="ai"]{background:var(--bgc) !important;color:var(--tx) !important}
+body.dark .mod-card[data-module="ai"] .stit{color:var(--tx) !important}
+body.dark .mod-card[data-module="ai"] .sdesc{color:var(--tx2) !important}
+body.dark .mod-card[data-module="ai"] .ai-res{background:#1e293b !important;border-color:#334155 !important}
+body.dark .mod-card[data-module="ai"] #aiCont{color:var(--tx) !important}
+body.dark .edwrap .ql-toolbar{background:#0f172a}
+body.dark .edwrap .ql-toolbar .ql-stroke{stroke:#94a3b8}
+body.dark .edwrap .ql-toolbar .ql-fill{fill:#94a3b8}
+body.dark .edwrap .ql-toolbar .ql-picker-label{color:#94a3b8}
+body.dark .edwrap .ql-editor{color:#e2e8f0}
+body.dark .prev-h{background:#0f172a}
+body.dark .toast{background:#334155}
+body.dark .tc.sel{background:rgba(49,130,206,.15)}
+body.dark .tbl-prev th{background:#334155}
+@media(max-width:768px){.hdr{padding:14px 16px}.hdr h1{font-size:17px}.main{padding:16px 12px 40px}.card{padding:18px 16px}.tgrid{grid-template-columns:1fr}.fgrid{grid-template-columns:1fr}.ccfg{grid-template-columns:1fr}.mi{flex-direction:column;align-items:stretch}.bgrp{gap:8px}.btn{padding:8px 14px;font-size:12.5px}.hm{display:none}.img-gallery{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}}
+</style>
+</head>
+<body>
+<div class="toast-c" id="toastC"></div>
+
+<header class="hdr">
+  <div class="hl">
+    <h1 data-i18n="title">SmartBrief 智能简报</h1>
+    <span class="sub" data-i18n="subtitle">上传模板 · 填写信息 · AI总结 · 一键生成专业报告</span>
+  </div>
+  <div class="hr">
+    <button class="hbtn" id="btnDM" onclick="toggleDark()"><i class="fas fa-moon"></i><span class="hm" data-i18n="darkMode">深色模式</span></button>
+    <button class="hbtn" onclick="toggleLang()"><i class="fas fa-globe"></i><span class="hm" id="langLabel">EN</span></button>
+    <button class="hbtn" onclick="toggleBrand()"><i class="fas fa-palette"></i><span class="hm" data-i18n="brandSettings">品牌设置</span></button>
+  </div>
+</header>
+
+<main class="main">
+
+<!-- Brand Panel -->
+<div class="card bpanel" id="brandPanel">
+  <div class="stit"><i class="fas fa-palette" style="color:var(--acc)"></i> <span data-i18n="brandSettings">品牌自定义</span></div>
+  <p class="sdesc">自定义报告品牌元素，应用后将实时更新全局样式</p>
+  <div class="fgrid">
+    <div class="fg"><label class="fl">品牌主色 Primary</label><input type="color" value="#1a365d" id="bPri" class="fi" style="padding:4px;height:40px"></div>
+    <div class="fg"><label class="fl">品牌辅色 Secondary</label><input type="color" value="#2c5282" id="bSec" class="fi" style="padding:4px;height:40px"></div>
+    <div class="fg"><label class="fl">报告背景色 Bg</label><input type="color" value="#ffffff" id="bBg" class="fi" style="padding:4px;height:40px"></div>
+    <div class="fg"><label class="fl">报告文字色 Text</label><input type="color" value="#1e293b" id="bTx" class="fi" style="padding:4px;height:40px"></div>
+    <div class="fg"><label class="fl">报告强调色 Accent</label><input type="color" value="#3182ce" id="bAcc" class="fi" style="padding:4px;height:40px"></div>
+    <div class="fg"><label class="fl">Logo 上传</label><input type="file" accept="image/*" id="bLogo" class="fi" style="padding:6px"></div>
+    <div class="fg"><label class="fl">字体 Font</label><select id="bFont" class="fsel"><option value="DM Sans">DM Sans (默认)</option><option value="Inter">Inter</option><option value="Roboto">Roboto</option><option value="Open Sans">Open Sans</option><option value="Lato">Lato</option><option value="Montserrat">Montserrat</option></select></div>
+    <div class="fg full" style="margin-bottom:8px">
+      <label class="fl"><i class="fas fa-swatchbook" style="color:var(--acc);margin-right:4px"></i> 风格预设 Style Presets</label>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">
+        <button class="btn btn-g" onclick="applyStylePreset('formal')" style="padding:6px 14px;font-size:12px"><i class="fas fa-user-tie"></i> 正式 Formal</button>
+        <button class="btn btn-g" onclick="applyStylePreset('informal')" style="padding:6px 14px;font-size:12px"><i class="fas fa-smile"></i> 轻松 Informal</button>
+        <button class="btn btn-g" onclick="applyStylePreset('marketing')" style="padding:6px 14px;font-size:12px"><i class="fas fa-bullhorn"></i> 营销 Marketing</button>
+        <button class="btn btn-g" onclick="applyStylePreset('tech')" style="padding:6px 14px;font-size:12px"><i class="fas fa-microchip"></i> 科技 Tech</button>
+        <button class="btn btn-g" onclick="applyStylePreset('elegant')" style="padding:6px 14px;font-size:12px"><i class="fas fa-gem"></i> 优雅 Elegant</button>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">页眉文案 Header Text</label><input type="text" id="bHdr" class="fi" placeholder="如：XX公司内部报告"></div>
+    <div class="fg"><label class="fl">保密等级 Confidential Level</label><select id="bConfLvl" class="fsel"><option value="">不显示</option><option value="公开">公开</option><option value="内部">内部</option><option value="机密">机密</option><option value="绝密">绝密</option></select></div>
+    <div class="fg full"><label class="fl">保密声明</label><input type="text" id="bConf" class="fi" placeholder="如：本文件为公司机密，未经授权不得外传"></div>
+    <div class="fg"><label class="fl">水印文字 Watermark</label><input type="text" id="bWm" class="fi" placeholder="如：内部资料"></div>
+    <div class="fg"><label class="fl">页脚自定义 Footer</label><input type="text" id="bFooter" class="fi" placeholder="如：版权所有 2024 XX公司"></div>
+  </div>
+  <div class="bgrp"><button class="btn btn-p" onclick="applyBrand()"><i class="fas fa-check"></i> 应用品牌设置 Apply</button></div>
+</div>
+
+<!-- Data Import/Export -->
+<div class="card" id="dataImportSection">
+  <div class="stit"><i class="fas fa-file-import" style="color:var(--acc)"></i> <span data-i18n="dataImportTitle">数据导入导出</span></div>
+  <p class="sdesc">通过Excel模板批量导入报告信息、指标和图表数据</p>
+  <div class="bgrp" style="margin-top:0">
+    <button class="btn btn-g" onclick="dlExcelTpl()"><i class="fas fa-file-excel"></i> <span data-i18n="downloadTemplate">下载Excel模板</span></button>
+    <label class="btn btn-g" style="cursor:pointer"><i class="fas fa-upload"></i> <span data-i18n="uploadExcel">上传Excel数据</span><input type="file" accept=".xlsx,.xls,.csv" id="excelUp" style="display:none" onchange="uploadExcel(event)"></label>
+    <button class="btn btn-g" onclick="exportJSON()"><i class="fas fa-file-code"></i> <span data-i18n="exportJson">导出JSON</span></button>
+    <label class="btn btn-g" style="cursor:pointer"><i class="fas fa-file-import"></i> <span data-i18n="importJson">导入JSON</span><input type="file" accept=".json" id="jsonUp" style="display:none" onchange="importJSON(event)"></label>
+  </div>
+</div>
+
+<!-- Saved Templates -->
+<div class="card" id="savedTplSection">
+  <div class="stit"><i class="fas fa-bookmark" style="color:var(--acc)"></i> <span data-i18n="savedTplTitle">已保存模板 Saved Templates</span></div>
+  <p class="sdesc">保存当前配置为模板，后续可直接套用 Save current config as reusable template</p>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <input type="text" id="saveTplName" class="fi" placeholder="模板名称 Template Name" style="flex:1;max-width:260px">
+    <button class="btn btn-p" onclick="saveTemplate()"><i class="fas fa-save"></i> 保存模板 Save</button>
+    <button class="btn btn-o" onclick="openTplPicker()" id="btnPickTpl"><i class="fas fa-folder-open"></i> 选择已保存模板 Load Template</button>
+  </div>
+  <div id="savedTplList" style="margin-top:14px;display:none"></div>
+  <!-- Template Picker Modal -->
+  <div id="tplPickerModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:9000;background:rgba(0,0,0,.45);align-items:center;justify-content:center">
+    <div style="background:var(--bgc);border-radius:var(--radl);box-shadow:var(--shxl);max-width:520px;width:90%;max-height:70vh;display:flex;flex-direction:column;overflow:hidden">
+      <div style="padding:18px 22px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between">
+        <div style="font-weight:700;font-size:16px;color:var(--tx)"><i class="fas fa-folder-open" style="color:var(--acc);margin-right:6px"></i>选择模板 Select Template</div>
+        <button class="bic" onclick="closeTplPicker()" style="border:none"><i class="fas fa-times"></i></button>
+      </div>
+      <div id="tplPickerList" style="padding:16px 22px;overflow-y:auto;flex:1"></div>
+      <div style="padding:12px 22px;border-top:1px solid var(--bd);text-align:right">
+        <button class="btn btn-g" onclick="closeTplPicker()"><i class="fas fa-times"></i> 关闭 Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Sortable Modules Container -->
+<div id="modulesContainer">
+
+<!-- Module: Template -->
+<div class="card mod-card" data-module="template" data-module-label="模板选择">
+  <div class="drag-handle" title="拖拽调整顺序"><i class="fas fa-grip-vertical"></i></div>
+  <div class="stit"><i class="fas fa-layer-group" style="color:var(--acc)"></i> <span data-i18n="templateTitle">模板选择</span> <span class="badge"><span data-i18n="step">步骤</span> 1</span></div>
+  <p class="sdesc">选择一个报告模板开始，或上传自定义HTML模板</p>
+  <div class="tgrid" id="tplGrid">
+    <div class="tc sel" data-tpl="business" onclick="selTpl(this)"><span class="tci"><i class="fas fa-chart-line"></i></span><div class="tct" data-i18n="tmplBusiness">业务回顾报告</div><div class="tcd">季度/年度业务表现回顾，KPI追踪</div><div class="tags"><span class="tag">Business Review</span><span class="tag">KPI</span></div></div>
+    <div class="tc" data-tpl="project" onclick="selTpl(this)"><span class="tci"><i class="fas fa-clipboard-list"></i></span><div class="tct" data-i18n="tmplProject">项目进展报告</div><div class="tcd">项目里程碑、进度与资源管理</div><div class="tags"><span class="tag">Project</span><span class="tag">Milestone</span></div></div>
+    <div class="tc" data-tpl="finance" onclick="selTpl(this)"><span class="tci"><i class="fas fa-coins"></i></span><div class="tct" data-i18n="tmplFinance">财务分析报告</div><div class="tcd">收入支出利润分析，预算执行</div><div class="tags"><span class="tag">Finance</span><span class="tag">ROI</span></div></div>
+    <div class="tc" data-tpl="marketing" onclick="selTpl(this)"><span class="tci"><i class="fas fa-bullhorn"></i></span><div class="tct" data-i18n="tmplMarketing">营销效果报告</div><div class="tcd">渠道效果、转化率、CAC分析</div><div class="tags"><span class="tag">Marketing</span><span class="tag">Conversion</span></div></div>
+    <div class="tc" data-tpl="research" onclick="selTpl(this)"><span class="tci"><i class="fas fa-microscope"></i></span><div class="tct" data-i18n="tmplResearch">研究调查报告</div><div class="tcd">市场调研、用户研究、竞品分析</div><div class="tags"><span class="tag">Research</span><span class="tag">Insight</span></div></div>
+    <div class="tc" data-tpl="custom" onclick="selTpl(this)"><span class="tci"><i class="fas fa-paint-brush"></i></span><div class="tct" data-i18n="tmplCustom">自定义模板</div><div class="tcd">上传您的HTML模板文件</div><div class="tags"><span class="tag">Custom</span><span class="tag">Flexible</span></div></div>
+  </div>
+  <div class="uz" id="cusUZ"><i class="fas fa-cloud-upload-alt"></i><p>拖拽HTML模板文件到此处，或 <strong style="color:var(--acc);cursor:pointer">点击选择文件</strong></p><p class="ftypes">支持 .html 文件</p><input type="file" accept=".html,.htm" id="cusFile" style="display:none"></div>
+</div>
+
+<!-- Module: Basic Info -->
+<div class="card mod-card" data-module="basicinfo" data-module-label="基本信息">
+  <div class="drag-handle" title="拖拽调整顺序"><i class="fas fa-grip-vertical"></i></div>
+  <div class="stit"><i class="fas fa-info-circle" style="color:var(--acc)"></i> <span data-i18n="basicInfoTitle">报告基本信息</span> <span class="badge"><span data-i18n="step">步骤</span> 2</span></div>
+  <p class="sdesc">填写报告的基本元数据信息</p>
+  <div class="fgrid">
+    <div class="fg"><label class="fl" data-i18n="reportTitleLabel">报告标题</label><input type="text" id="rTitle" class="fi" placeholder="请输入报告标题"></div>
+    <div class="fg"><label class="fl" data-i18n="reportSubtitleLabel">报告副标题</label><input type="text" id="rSub" class="fi" placeholder="可选副标题"></div>
+    <div class="fg"><label class="fl" data-i18n="reportDateLabel">报告日期</label><input type="date" id="rDate" class="fi"></div>
+    <div class="fg"><label class="fl" data-i18n="audienceLabel">汇报对象</label><input type="text" id="rAud" class="fi" placeholder="如：管理层、董事会"></div>
+    <div class="fg"><label class="fl" data-i18n="authorLabel">报告作者/部门</label><input type="text" id="rAuth" class="fi" placeholder="如：数据分析部"></div>
+    <div class="fg"><label class="fl" data-i18n="versionLabel">报告版本</label><input type="text" id="rVer" class="fi" placeholder="如：v1.0" value="v1.0"></div>
+    <div class="fg full"><label class="fl" data-i18n="summaryLabel">报告摘要</label><textarea id="rSum" class="fta" rows="4" placeholder="简要描述本报告的核心内容和关键发现..."></textarea></div>
+  </div>
+  <!-- Banner Style Settings -->
+  <div style="margin-top:18px;padding:16px 18px;border:1px solid var(--bd);border-radius:var(--rad);background:var(--bg)">
+    <div style="font-size:13px;font-weight:600;color:var(--tx);margin-bottom:12px"><i class="fas fa-swatchbook" style="color:var(--acc);margin-right:4px"></i> Banner 样式设置 Banner Style</div>
+    <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end">
+      <div class="fg" style="min-width:100px"><label class="fl" style="font-size:12px">背景色 Bg Color</label><input type="color" id="bannerBgColor" value="#1a365d" class="fi" style="padding:3px;height:36px;width:100%"></div>
+      <div class="fg" style="min-width:100px"><label class="fl" style="font-size:12px">文字色 Text Color</label><input type="color" id="bannerTextColor" value="#ffffff" class="fi" style="padding:3px;height:36px;width:100%"></div>
+      <div class="fg" style="min-width:110px"><label class="fl" style="font-size:12px">标题字号 Title Size</label><select id="bannerTitleSize" class="fsel" style="height:36px"><option value="24">24px</option><option value="28" selected>28px</option><option value="32">32px</option><option value="36">36px</option><option value="42">42px</option></select></div>
+      <div class="fg" style="min-width:110px"><label class="fl" style="font-size:12px">副标题字号 Sub Size</label><select id="bannerSubSize" class="fsel" style="height:36px"><option value="14">14px</option><option value="16" selected>16px</option><option value="18">18px</option><option value="20">20px</option></select></div>
+      <div style="padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;border:1px solid var(--bd);background:var(--bgc);color:var(--tx2)" id="bannerPreviewBtn" onclick="previewBanner()"><i class="fas fa-eye"></i> 预览 Preview</div>
+    </div>
+    <div id="bannerPreview" style="display:none;margin-top:12px;border-radius:8px;overflow:hidden;box-shadow:var(--shm)">
+      <div id="bannerPreviewInner" style="padding:24px 28px;text-align:center">
+        <div id="bp_title" style="font-weight:700">报告标题</div>
+        <div id="bp_sub" style="opacity:.7;margin-top:4px">副标题</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Module: Metrics -->
+<div class="card mod-card" data-module="metrics" data-module-label="核心指标">
+  <div class="drag-handle" title="拖拽调整顺序"><i class="fas fa-grip-vertical"></i></div>
+  <div class="stit"><i class="fas fa-chart-bar" style="color:var(--acc)"></i> <span data-i18n="metricsTitle">核心指标</span> <span class="badge"><span data-i18n="step">步骤</span> 3</span></div>
+  <p class="sdesc">配置指标与对比维度 (YoY / MoM / Target / Budget / Custom)</p>
+  <!-- KPI Card Display Settings -->
+  <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px;padding:12px 14px;border:1px solid var(--bd);border-radius:var(--rad);background:var(--bg)">
+    <div class="fg" style="min-width:120px"><label class="fl" style="font-size:12px"><i class="fas fa-th-large" style="color:var(--acc);margin-right:3px"></i> 卡片大小 Card Size</label><select id="kpiCardSize" class="fsel" style="height:34px;font-size:12px"><option value="small">小 Small</option><option value="medium" selected>中 Medium</option><option value="large">大 Large</option></select></div>
+
+  </div>
+  <div id="mGroups"></div>
+  <div class="bgrp">
+    <button class="btn btn-o" onclick="addMGroup()"><i class="fas fa-plus-circle"></i> <span data-i18n="addMetricGroup">添加指标组</span></button>
+  </div>
+</div>
+
+<!-- Module: Charts -->
+<div class="card mod-card" data-module="charts" data-module-label="图表数据">
+  <div class="drag-handle" title="拖拽调整顺序"><i class="fas fa-grip-vertical"></i></div>
+  <div class="stit"><i class="fas fa-chart-pie" style="color:var(--acc)"></i> <span data-i18n="chartsTitle">图表与数据表</span> <span class="badge"><span data-i18n="step">步骤</span> 4</span></div>
+  <p class="sdesc">添加多个图表和数据表格，支持多数据集、自定义配色和备注</p>
+  <div id="chartsContainer"></div>
+  <div class="bgrp">
+    <button class="btn btn-o" onclick="addChart()"><i class="fas fa-plus-circle"></i> <span data-i18n="addChart">添加图表</span></button>
+    <button class="btn btn-g" onclick="addChart('table')"><i class="fas fa-table"></i> <span data-i18n="addTable">添加数据表格</span></button>
+  </div>
+</div>
+
+<!-- Module: Media Assets -->
+<div class="card mod-card" data-module="media" data-module-label="素材管理">
+  <div class="drag-handle" title="拖拽调整顺序"><i class="fas fa-grip-vertical"></i></div>
+  <div class="stit"><i class="fas fa-photo-video" style="color:var(--acc)"></i> 图片与素材管理 Media Assets <span class="badge"><span data-i18n="step">步骤</span> 5</span></div>
+  <p class="sdesc">添加图片、视频或自媒体嵌入链接，丰富报告内容</p>
+  <!-- Upload Zone -->
+  <div id="mediaUZ" style="border:2px dashed var(--bd);border-radius:var(--rad);padding:28px;text-align:center;transition:all var(--tr);cursor:pointer;background:var(--bg)" ondragover="event.preventDefault();this.style.borderColor='var(--acc)';this.style.background='var(--acc-l)'" ondragleave="this.style.borderColor='var(--bd)';this.style.background='var(--bg)'" ondrop="event.preventDefault();this.style.borderColor='var(--bd)';this.style.background='var(--bg)';handleMediaDrop(event)" onclick="document.getElementById('mediaFileInput').click()">
+    <i class="fas fa-cloud-upload-alt" style="font-size:28px;color:var(--acc);margin-bottom:8px;display:block"></i>
+    <p style="color:var(--tx2);font-size:13px">拖拽文件到此处，或 <strong style="color:var(--acc)">点击选择文件</strong></p>
+    <p style="font-size:11px;color:var(--txm);margin-top:4px">支持 图片 (JPG/PNG/GIF/WebP)、视频 (MP4/WebM)</p>
+    <input type="file" id="mediaFileInput" accept="image/*,video/mp4,video/webm" multiple style="display:none" onchange="handleMediaFiles(this.files);this.value=''">
+  </div>
+  <!-- Social/Embed URL -->
+  <div style="display:flex;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap">
+    <select id="mediaEmbedType" class="fsel" style="width:140px">
+      <option value="youtube">YouTube</option>
+      <option value="bilibili">Bilibili</option>
+      <option value="tiktok">抖音/TikTok</option>
+      <option value="weibo">微博 Weibo</option>
+      <option value="twitter">Twitter/X</option>
+      <option value="instagram">Instagram</option>
+      <option value="custom">自定义 Custom URL</option>
+    </select>
+    <input type="text" id="mediaEmbedUrl" class="fi" placeholder="粘贴链接 Paste URL..." style="flex:1;min-width:200px">
+    <button class="btn btn-o" onclick="addMediaEmbed()"><i class="fas fa-plus-circle"></i> 添加 Add</button>
+  </div>
+  <!-- Media Gallery -->
+  <div id="mediaGallery" style="margin-top:16px"></div>
+</div>
+
+<!-- Module: AI Smart Assistant -->
+<div class="card mod-card" data-module="ai" data-module-label="AI智能分析" style="background:#fff;border:1px solid var(--bd);color:#1e293b">
+  <div class="drag-handle" title="拖拽调整顺序"><i class="fas fa-grip-vertical"></i></div>
+  <div class="stit" style="color:#1e293b"><i class="fas fa-robot" style="color:#7c3aed"></i> AI 智能助手 Smart Assistant <span class="badge" style="background:#7c3aed;color:#fff"><span data-i18n="step">步骤</span> 6</span></div>
+  <p class="sdesc" style="color:#64748b">AI自动分析数据，生成洞察、建议、异常检测、趋势预测和市场分析</p>
+  <div class="fg" style="margin-bottom:14px"><label class="fl" style="color:#1e293b">AI 关注重点 Focus Area</label><input type="text" id="aiFocus" class="fi" placeholder="如：重点分析营收增长趋势和用户留存率"></div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:0">
+    <button class="btn" onclick="genAI('summary')" style="background:#7c3aed;color:#fff;border:1px solid #7c3aed"><i class="fas fa-file-alt"></i> 生成执行摘要</button>
+    <button class="btn" onclick="genAI('insight')" style="background:#7c3aed;color:#fff;border:1px solid #7c3aed"><i class="fas fa-lightbulb"></i> 生成数据洞察</button>
+    <button class="btn" onclick="genAI('swot')" style="background:#7c3aed;color:#fff;border:1px solid #7c3aed"><i class="fas fa-th-large"></i> 生成SWOT分析</button>
+    <button class="btn" onclick="genAI('marketing')" style="background:#7c3aed;color:#fff;border:1px solid #7c3aed"><i class="fas fa-bullhorn"></i> 市场营销分析</button>
+    <button class="btn" onclick="genAI('competitor')" style="background:#8b5cf6;color:#fff;border:1px solid #8b5cf6"><i class="fas fa-chess"></i> 竞争对手分析</button>
+    <button class="btn" onclick="genAI('risk')" style="background:#8b5cf6;color:#fff;border:1px solid #8b5cf6"><i class="fas fa-shield-alt"></i> 风险评估</button>
+    <button class="btn" onclick="genAI('anomaly')" style="background:#8b5cf6;color:#fff;border:1px solid #8b5cf6"><i class="fas fa-exclamation-triangle"></i> 异常检测</button>
+    <button class="btn" onclick="genAI('trend')" style="background:#8b5cf6;color:#fff;border:1px solid #8b5cf6"><i class="fas fa-chart-line"></i> 趋势预测</button>
+  </div>
+  <div style="margin-top:10px;padding-top:10px;border-top:1px dashed #e2e8f0;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+    <span style="font-size:12px;color:#64748b;font-weight:600;margin-right:4px"><i class="fas fa-magic" style="color:#7c3aed"></i> 文本处理:</span>
+    <button class="btn" onclick="genAI('formalize')" style="background:#f3f0ff;color:#7c3aed;border:1px solid #ddd6fe"><i class="fas fa-user-tie"></i> 正式化</button>
+    <button class="btn" onclick="genAI('expand')" style="background:#f3f0ff;color:#7c3aed;border:1px solid #ddd6fe"><i class="fas fa-expand-alt"></i> 扩写</button>
+    <button class="btn" onclick="toggleAiVisual()" style="background:#f3f0ff;color:#7c3aed;border:1px solid #ddd6fe" id="btnAiVisual"><i class="fas fa-chart-area"></i> AI配图建议</button>
+  </div>
+  <div style="margin-top:12px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+    <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;color:#64748b"><input type="checkbox" id="aiWmToggle" checked style="accent-color:#7c3aed"><span data-i18n="showAiWatermark">显示AI水印</span></label>
+  </div>
+
+  <div class="ai-res" id="aiRes" style="background:#f8f6ff;border-color:#ddd6fe">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+      <div class="ai-lbl" style="color:#7c3aed"><i class="fas fa-pen"></i> <span data-i18n="editableContent">可编辑内容</span></div>
+      <div style="display:flex;gap:6px">
+        <button class="btn" onclick="addAiToReport()" style="padding:4px 10px;font-size:11px;background:#7c3aed;color:#fff;border:1px solid #7c3aed"><i class="fas fa-plus"></i> 添加到报告</button>
+        <button class="btn" onclick="regenAI()" style="padding:4px 10px;font-size:11px;background:#f3f0ff;color:#7c3aed;border:1px solid #ddd6fe"><i class="fas fa-sync-alt"></i> <span data-i18n="regenerate">重新生成</span></button>
+      </div>
+    </div>
+    <div id="aiCont" contenteditable="true" style="color:#1e293b"></div>
+  </div>
+  <!-- AI Visual Recommendation Panel -->
+  <div id="aiVisualPanel" style="display:none;margin-top:16px;border-radius:var(--radl);overflow:hidden;box-shadow:var(--shm)">
+    <div style="background:linear-gradient(135deg,#4c1d95,#7c3aed,#a78bfa);padding:18px 22px;color:#fff">
+      <div style="font-weight:700;font-size:15px;margin-bottom:2px"><i class="fas fa-robot"></i> AI 配图建议 — Visualization Recommendations</div>
+      <div style="font-size:12px;opacity:.7">========================================</div>
+    </div>
+    <div id="aiVisualContent" style="background:linear-gradient(180deg,#7c3aed 0%,#a78bfa 40%,#c4b5fd 100%);padding:22px 24px;color:#fff;font-size:14px;line-height:1.9;min-height:120px"></div>
+  </div>
+  <!-- AI Saved Blocks for Report -->
+  <div id="aiSavedBlocks" style="margin-top:16px"></div>
+</div>
+
+<!-- Module: Editor -->
+<div class="card mod-card" data-module="editor" data-module-label="内容编辑">
+  <div class="drag-handle" title="拖拽调整顺序"><i class="fas fa-grip-vertical"></i></div>
+  <div class="stit"><i class="fas fa-edit" style="color:var(--acc)"></i> <span data-i18n="editorTitle">报告内容编辑</span> <span class="badge"><span data-i18n="step">步骤</span> 7</span></div>
+  <p class="sdesc">使用富文本编辑器编写报告正文内容</p>
+  <div class="edwrap"><div id="quillEd"></div></div>
+</div>
+</div><!-- end modulesContainer -->
+
+<!-- Generate & Export -->
+<div class="card">
+  <div class="stit"><i class="fas fa-file-export" style="color:var(--acc)"></i> <span data-i18n="exportTitle">生成与导出</span></div>
+  <p class="sdesc">预览报告效果，选择导出格式</p>
+  <div class="bgrp">
+    <button class="btn btn-p" onclick="previewRpt()"><i class="fas fa-eye"></i> <span data-i18n="preview">预览报告</span></button>
+    <button class="btn btn-s" onclick="dlHTML()"><i class="fas fa-save"></i> <span data-i18n="downloadHtml">下载HTML</span></button>
+    <button class="btn btn-o" onclick="dlPDF()"><i class="fas fa-file-pdf"></i> <span data-i18n="downloadPdf">下载PDF</span></button>
+    <button class="btn btn-o" onclick="dlPNG()"><i class="fas fa-image"></i> <span data-i18n="exportPng">导出PNG</span></button>
+    <button class="btn btn-o" onclick="printRpt()"><i class="fas fa-print"></i> <span data-i18n="print">打印</span></button>
+    <button class="btn btn-d" onclick="resetAll()"><i class="fas fa-redo"></i> <span data-i18n="reset">重置表单</span></button>
+  </div>
+  <div class="prev-c" id="prevC">
+    <div class="prev-h"><span><i class="fas fa-eye"></i> 报告预览</span><div style="display:flex;gap:8px"><button class="btn btn-s" onclick="dlHTML()" style="padding:6px 14px;font-size:12px"><i class="fas fa-save"></i> HTML</button><button class="btn btn-g" onclick="closePrev()" style="padding:6px 14px;font-size:12px"><i class="fas fa-times"></i> 关闭</button></div></div>
+    <iframe class="prev-if" id="prevIf"></iframe>
+  </div>
+</div>
+
+<!-- Share -->
+<div class="card">
+  <div class="stit"><i class="fas fa-share-alt" style="color:var(--acc)"></i> <span data-i18n="shareTitle">在线分享设置</span></div>
+  <p class="sdesc">生成分享链接，可设置密码和有效期</p>
+  <div class="fgrid">
+    <div class="fg"><label class="fl">分享密码 Password</label><input type="text" id="shPwd" class="fi" placeholder="留空表示无需密码"></div>
+    <div class="fg"><label class="fl">有效期 Expiry</label><select id="shExp" class="fsel"><option value="24h">24小时</option><option value="7d" selected>7天</option><option value="30d">30天</option><option value="perm">永久 Permanent</option></select></div>
+  </div>
+  <div class="bgrp"><button class="btn btn-p" onclick="genShare()"><i class="fas fa-link"></i> 生成分享链接 Generate Link</button></div>
+  <div class="sh-res" id="shRes"><div style="margin-bottom:6px;font-weight:600;color:var(--tx)"><i class="fas fa-check-circle" style="color:var(--ok)"></i> 分享链接已生成</div><div class="sh-lnk" id="shLnk"></div><div style="margin-top:6px;font-size:12px;color:var(--txm)" id="shInfo"></div></div>
+</div>
+
+</main>
+<script>
+/* ==== I18N ==== */
+let curLang='zh';
+const i18n={
+zh:{title:'SmartBrief 智能简报',subtitle:'上传模板 · 填写信息 · AI总结 · 一键生成专业报告',darkMode:'深色模式',lightMode:'浅色模式',brandSettings:'品牌设置',templateTitle:'模板选择',step:'步骤',basicInfoTitle:'报告基本信息',metricsTitle:'核心指标',chartsTitle:'图表与数据表',aiTitle:'AI 智能分析',editorTitle:'报告内容编辑',exportTitle:'生成与导出',shareTitle:'在线分享设置',dataImportTitle:'数据导入导出',savedTplTitle:'已保存模板',reportTitleLabel:'报告标题',reportSubtitleLabel:'报告副标题',reportDateLabel:'报告日期',audienceLabel:'汇报对象',authorLabel:'报告作者/部门',versionLabel:'报告版本',summaryLabel:'报告摘要',preview:'预览报告',downloadHtml:'下载HTML',downloadPdf:'下载PDF',exportPng:'导出PNG',print:'打印',reset:'重置表单',addChart:'添加图表',addTable:'添加数据表格',addMetricGroup:'添加指标组',downloadTemplate:'下载Excel模板',uploadExcel:'上传Excel数据',tmplBusiness:'业务回顾报告',tmplProject:'项目进展报告',tmplFinance:'财务分析报告',tmplMarketing:'营销效果报告',tmplResearch:'研究调查报告',tmplCustom:'自定义模板',aiSummary:'执行摘要',aiInsight:'数据洞察',aiSwot:'SWOT分析',aiAnomaly:'异常检测',aiTrend:'趋势预测',aiFormalize:'正式化',aiExpand:'扩写',aiVisual:'AI配图建议',chartBar:'柱状图',chartLine:'折线图',chartPie:'饼图',chartDoughnut:'环形图',chartRadar:'雷达图',chartPolar:'极坐标图',chartScatter:'散点图',chartStackedBar:'堆叠柱状图',chartCombo:'组合图(柱+线)',sizeSmall:'小',sizeMedium:'中',sizeLarge:'大',sizeFull:'全宽',exportJson:'导出JSON',importJson:'导入JSON',dataset:'数据集',addDataset:'添加数据集',chartNote:'备注',showAiWatermark:'显示AI水印',aiIllustration:'AI图示',refresh:'刷新',editableContent:'可编辑内容',regenerate:'重新生成'},
+en:{title:'SmartBrief 智能简报',subtitle:'Upload Template · Fill Data · AI Summary · Generate Professional Reports',darkMode:'Dark Mode',lightMode:'Light Mode',brandSettings:'Branding',templateTitle:'Template Selection',step:'Step',basicInfoTitle:'Report Information',metricsTitle:'Key Metrics',chartsTitle:'Charts & Tables',aiTitle:'AI Analysis',editorTitle:'Content Editor',exportTitle:'Generate & Export',shareTitle:'Share Settings',dataImportTitle:'Data Import/Export',savedTplTitle:'Saved Templates',reportTitleLabel:'Report Title',reportSubtitleLabel:'Subtitle',reportDateLabel:'Date',audienceLabel:'Audience',authorLabel:'Author / Department',versionLabel:'Version',summaryLabel:'Summary',preview:'Preview',downloadHtml:'Download HTML',downloadPdf:'Download PDF',exportPng:'Export PNG',print:'Print',reset:'Reset',addChart:'Add Chart',addTable:'Add Table',addMetricGroup:'Add Metric Group',downloadTemplate:'Download Excel Template',uploadExcel:'Upload Excel Data',tmplBusiness:'Business Review',tmplProject:'Project Status',tmplFinance:'Financial Analysis',tmplMarketing:'Marketing Report',tmplResearch:'Research Report',tmplCustom:'Custom Template',aiSummary:'Summary',aiInsight:'Insights',aiSwot:'SWOT Analysis',aiAnomaly:'Anomaly Detection',aiTrend:'Trend Forecast',aiFormalize:'Formalize',aiExpand:'Expand',aiVisual:'Visual Suggestions',chartBar:'Bar',chartLine:'Line',chartPie:'Pie',chartDoughnut:'Doughnut',chartRadar:'Radar',chartPolar:'Polar Area',chartScatter:'Scatter',chartStackedBar:'Stacked Bar',chartCombo:'Combination (Bar+Line)',sizeSmall:'Small',sizeMedium:'Medium',sizeLarge:'Large',sizeFull:'Full',exportJson:'Export JSON',importJson:'Import JSON',dataset:'Dataset',addDataset:'Add Dataset',chartNote:'Notes',showAiWatermark:'Show AI watermark',aiIllustration:'AI Illustration',refresh:'Refresh',editableContent:'Editable Content',regenerate:'Regenerate'}
+};
+function t(k){return i18n[curLang][k]||i18n.zh[k]||k}
+function toggleLang(){curLang=curLang==='zh'?'en':'zh';document.getElementById('langLabel').textContent=curLang==='zh'?'EN':'中文';applyLang()}
+function applyLang(){document.querySelectorAll('[data-i18n]').forEach(el=>{const k=el.getAttribute('data-i18n');const v=t(k);if(v)el.textContent=v});
+document.querySelectorAll('.chart-type-val').forEach(sel=>{sel.querySelectorAll('option').forEach(opt=>{const map={bar:'chartBar',line:'chartLine',pie:'chartPie',doughnut:'chartDoughnut',radar:'chartRadar',polarArea:'chartPolar',scatter:'chartScatter',stackedBar:'chartStackedBar',combo:'chartCombo'};if(map[opt.value])opt.textContent=t(map[opt.value])})});
+document.querySelectorAll('.chart-size-sel').forEach(sel=>{sel.querySelectorAll('option').forEach(opt=>{const map={small:'sizeSmall',medium:'sizeMedium',large:'sizeLarge',full:'sizeFull'};if(map[opt.value])opt.textContent=t(map[opt.value])})});
+}
+
+/* ==== STATE ==== */
+let quill=null,grpCnt=0,chartCnt=0,chartInst={},chartTimers={},logoData='',customTplHTML='';
+document.getElementById('rDate').valueAsDate=new Date();
+
+/* ==== TOAST ==== */
+function toast(msg,type='info'){const c=document.getElementById('toastC');const ic={success:'fa-check-circle',warning:'fa-exclamation-triangle',error:'fa-times-circle',info:'fa-info-circle'};const d=document.createElement('div');d.className='toast '+type;d.innerHTML='<i class="fas '+ic[type]+'"></i><span>'+msg+'</span>';c.appendChild(d);setTimeout(()=>{d.classList.add('rm');setTimeout(()=>d.remove(),300)},2500)}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+/* ==== DARK MODE ==== */
+function toggleDark(){document.body.classList.toggle('dark');const d=document.body.classList.contains('dark');document.getElementById('btnDM').innerHTML=d?'<i class="fas fa-sun"></i><span class="hm" data-i18n="lightMode">'+t('lightMode')+'</span>':'<i class="fas fa-moon"></i><span class="hm" data-i18n="darkMode">'+t('darkMode')+'</span>';toast(d?'Dark mode enabled':'Light mode enabled','info')}
+
+/* ==== BRAND ==== */
+function toggleBrand(){document.getElementById('brandPanel').classList.toggle('vis')}
+function applyBrand(){const p=document.getElementById('bPri').value;const s=document.getElementById('bSec').value;const f=document.getElementById('bFont').value;document.documentElement.style.setProperty('--bpri',p);document.documentElement.style.setProperty('--bsec',s);document.documentElement.style.setProperty('--pri',p);document.documentElement.style.setProperty('--pri-l',s);document.documentElement.style.setProperty('--font',"'"+f+"',sans-serif");document.body.style.fontFamily="'"+f+"',sans-serif";const li=document.getElementById('bLogo');if(li.files&&li.files[0]){const r=new FileReader();r.onload=e=>{logoData=e.target.result;toast('品牌设置已应用 Brand applied','success')};r.readAsDataURL(li.files[0])}else{toast('品牌设置已应用 Brand applied','success')}}
+
+/* ==== TEMPLATE ==== */
+function selTpl(el){document.querySelectorAll('.tc').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');document.getElementById('cusUZ').classList.toggle('vis',el.dataset.tpl==='custom')}
+const cusUZ=document.getElementById('cusUZ'),cusFile=document.getElementById('cusFile');
+cusUZ.addEventListener('click',()=>cusFile.click());
+cusUZ.addEventListener('dragover',e=>{e.preventDefault();cusUZ.classList.add('dragover')});
+cusUZ.addEventListener('dragleave',()=>cusUZ.classList.remove('dragover'));
+cusUZ.addEventListener('drop',e=>{e.preventDefault();cusUZ.classList.remove('dragover');const f=e.dataTransfer.files[0];if(f&&/\.html?$/i.test(f.name)){const r=new FileReader();r.onload=ev=>{customTplHTML=ev.target.result;toast('模板已加载 Template loaded','success')};r.readAsText(f)}else toast('请上传 .html 文件','warning')});
+cusFile.addEventListener('change',e=>{const f=e.target.files[0];if(f){const r=new FileReader();r.onload=ev=>{customTplHTML=ev.target.result;toast('模板已加载','success')};r.readAsText(f)}});
+
+/* ==== SORTABLE MODULES ==== */
+document.addEventListener('DOMContentLoaded',()=>{new Sortable(document.getElementById('modulesContainer'),{handle:'.drag-handle',animation:200,ghostClass:'sortable-ghost',chosenClass:'sortable-chosen'})});
+
+/* ==== METRICS (checkbox comparison system) ==== */
+function addMGroup(name,color,metrics){
+  const id=grpCnt++;const c=color||['#3182ce','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899'][id%6];
+  const n=name||t('addMetricGroup').replace('Add ','').replace('添加','')+(id+1);
+  const div=document.createElement('div');div.className='mg';div.dataset.gid=id;
+  div.innerHTML='<div class="mgh"><input type="text" class="fi fi-sm" value="'+esc(n)+'" placeholder="组名称 Group Name" style="max-width:220px" data-role="gname"><input type="color" value="'+c+'" data-role="gcolor" style="width:38px;height:34px;border:1px solid var(--bd);border-radius:6px;cursor:pointer;padding:2px"><button class="bic" onclick="delGroup(this)" title="删除组"><i class="fas fa-trash-alt"></i></button></div><div class="metric-items" data-role="mitems"></div><div class="bgrp"><button class="btn btn-g" onclick="addMetric(this)"><i class="fas fa-plus"></i> 添加指标 Add Metric</button></div>';
+  document.getElementById('mGroups').appendChild(div);
+  if(metrics&&metrics.length){metrics.forEach(m=>addMetric(div.querySelector('[data-role="mitems"]'),m))}
+  else{addMetric(div.querySelector('[data-role="mitems"]'));addMetric(div.querySelector('[data-role="mitems"]'))}
+  toast('已添加指标组','success');
+}
+
+function addMetric(target,data){
+  const items=target.closest?target.closest('.mg').querySelector('[data-role="mitems"]'):target;
+  const d=data||{};
+  const ph=!data;// placeholder mode
+  const div=document.createElement('div');div.className='mi';
+  div.innerHTML=
+    '<div style="display:flex;gap:6px;align-items:center;width:100%;flex-wrap:wrap">'+
+      '<input type="text" class="fi fi-sm" placeholder="'+(ph?'如：总营收 Revenue':'指标名称')+'" value="'+esc(d.name||'')+'" data-role="mname" style="flex:2;min-width:120px">'+
+      '<input type="text" class="fi fi-sm" placeholder="'+(ph?'如：¥2.8M':'本期值 Current')+'" value="'+esc(d.value||'')+'" data-role="mval" style="flex:1;min-width:80px" oninput="calcComp(this)">'+
+      '<button class="bic" onclick="delMetric(this)" title="删除"><i class="fas fa-times"></i></button>'+
+    '</div>'+
+    '<div class="comp-row">'+
+      '<span style="font-size:11px;color:var(--tx2);font-weight:600;margin-right:4px">明细 Details:</span>'+
+      '<label style="font-size:11px;cursor:pointer;display:flex;align-items:center;gap:2px"><input type="checkbox" data-comp="trend" '+(d.change||d.trend?'checked':'')+' onchange="toggleComp(this)"> Trend 趋势</label>'+
+      '<label style="font-size:11px;cursor:pointer;display:flex;align-items:center;gap:2px"><input type="checkbox" data-comp="yoy" '+(d.yoyVal?'checked':'')+' onchange="toggleComp(this)"> YoY 同比</label>'+
+      '<label style="font-size:11px;cursor:pointer;display:flex;align-items:center;gap:2px"><input type="checkbox" data-comp="mom" '+(d.momVal?'checked':'')+' onchange="toggleComp(this)"> MoM 环比</label>'+
+      '<label style="font-size:11px;cursor:pointer;display:flex;align-items:center;gap:2px"><input type="checkbox" data-comp="target" '+(d.targetVal?'checked':'')+' onchange="toggleComp(this)"> Target 目标</label>'+
+      '<label style="font-size:11px;cursor:pointer;display:flex;align-items:center;gap:2px"><input type="checkbox" data-comp="budget" '+(d.budgetVal?'checked':'')+' onchange="toggleComp(this)"> Budget 预算</label>'+
+      '<label style="font-size:11px;cursor:pointer;display:flex;align-items:center;gap:2px"><input type="checkbox" data-comp="custom" '+(d.customVal?'checked':'')+' onchange="toggleComp(this)"> Custom 自定义</label>'+
+    '</div>'+
+    '<div class="comp-fields" data-role="compfields">'+
+      ((d.change||d.trend)?'<div class="comp-field" data-cf="trend"><span class="mi-label">Trend:</span><select class="fsel fi-sm" data-role="mtrend" style="width:80px"><option value="up" '+(d.trend==='up'?'selected':'')+'>Up</option><option value="down" '+(d.trend==='down'?'selected':'')+'>Down</option><option value="flat" '+(d.trend==='flat'||!d.trend?'selected':'')+'>Flat</option></select><input type="text" class="fi fi-sm" placeholder="'+(ph?'如：+12.5%':'变化%')+'" value="'+esc(d.change||'')+'" data-role="mchange" style="max-width:90px"></div>':'')+
+      (d.yoyVal?'<div class="comp-field" data-cf="yoy"><span class="mi-label">YoY:</span><input type="text" class="fi fi-sm" placeholder="同比值" value="'+esc(d.yoyVal)+'" data-role="yoyval" oninput="calcComp(this)" style="max-width:100px"><span class="mi-calc" data-role="yoycalc"></span></div>':'')+
+      (d.momVal?'<div class="comp-field" data-cf="mom"><span class="mi-label">MoM:</span><input type="text" class="fi fi-sm" placeholder="环比值" value="'+esc(d.momVal)+'" data-role="momval" oninput="calcComp(this)" style="max-width:100px"><span class="mi-calc" data-role="momcalc"></span></div>':'')+
+      (d.targetVal?'<div class="comp-field" data-cf="target"><span class="mi-label">Target:</span><input type="text" class="fi fi-sm" placeholder="目标值" value="'+esc(d.targetVal)+'" data-role="targetval" oninput="calcComp(this)" style="max-width:100px"><span class="mi-calc" data-role="targetcalc"></span></div>':'')+
+      (d.budgetVal?'<div class="comp-field" data-cf="budget"><span class="mi-label">Budget:</span><input type="text" class="fi fi-sm" placeholder="预算值" value="'+esc(d.budgetVal)+'" data-role="budgetval" oninput="calcComp(this)" style="max-width:100px"><span class="mi-calc" data-role="budgetcalc"></span></div>':'')+
+      (d.customVal?'<div class="comp-field" data-cf="custom"><span class="mi-label"><input type="text" class="fi fi-sm" placeholder="标签" value="'+esc(d.customLabel||'')+'" data-role="customlabel" style="max-width:60px;font-size:10px">:</span><input type="text" class="fi fi-sm" placeholder="值" value="'+esc(d.customVal)+'" data-role="customval" oninput="calcComp(this)" style="max-width:100px"><select class="fsel fi-sm" data-role="customtrend" style="width:70px"><option value="" '+(!(d.customTrend)?'selected':'')+'>--</option><option value="up" '+(d.customTrend==='up'?'selected':'')+'>Up</option><option value="down" '+(d.customTrend==='down'?'selected':'')+'>Down</option><option value="flat" '+(d.customTrend==='flat'?'selected':'')+'>Flat</option></select><input type="text" class="fi fi-sm" placeholder="变化(选填)" value="'+esc(d.customChange||'')+'" data-role="customchange" style="max-width:80px"><span class="mi-calc" data-role="customcalc"></span></div>':'')+
+    '</div>';
+  items.appendChild(div);
+  if(d.yoyVal||d.momVal||d.targetVal||d.budgetVal||d.customVal)setTimeout(()=>calcComp(div.querySelector('[data-role="mval"]')),50);
+}
+
+function toggleComp(cb){
+  const mi=cb.closest('.mi');const fields=mi.querySelector('[data-role="compfields"]');const comp=cb.dataset.comp;
+  const existing=fields.querySelector('[data-cf="'+comp+'"]');
+  if(cb.checked&&!existing){
+    let html='';
+    if(comp==='trend'){
+      html='<div class="comp-field" data-cf="trend"><span class="mi-label">Trend:</span><select class="fsel fi-sm" data-role="mtrend" style="width:80px"><option value="up">Up</option><option value="down">Down</option><option value="flat" selected>Flat</option></select><input type="text" class="fi fi-sm" placeholder="变化% Change" data-role="mchange" style="max-width:90px"></div>';
+    }else if(comp==='custom'){
+      html='<div class="comp-field" data-cf="custom"><span class="mi-label"><input type="text" class="fi fi-sm" placeholder="标签" data-role="customlabel" style="max-width:60px;font-size:10px">:</span><input type="text" class="fi fi-sm" placeholder="值" data-role="customval" oninput="calcComp(this)" style="max-width:100px"><select class="fsel fi-sm" data-role="customtrend" style="width:70px"><option value="" selected>--</option><option value="up">Up</option><option value="down">Down</option><option value="flat">Flat</option></select><input type="text" class="fi fi-sm" placeholder="变化(选填)" data-role="customchange" style="max-width:80px"><span class="mi-calc" data-role="customcalc"></span></div>';
+    }else{
+      html='<div class="comp-field" data-cf="'+comp+'"><span class="mi-label">'+{yoy:'YoY:',mom:'MoM:',target:'Target:',budget:'Budget:'}[comp]+'</span><input type="text" class="fi fi-sm" placeholder="'+{yoy:'同比值',mom:'环比值',target:'目标值',budget:'预算值'}[comp]+'" data-role="'+comp+'val" oninput="calcComp(this)" style="max-width:100px"><span class="mi-calc" data-role="'+comp+'calc"></span></div>';
+    }
+    fields.insertAdjacentHTML('beforeend',html);
+  }else if(!cb.checked&&existing){existing.remove()}
+}
+
+function calcComp(el){
+  const mi=el.closest('.mi');if(!mi)return;
+  const curStr=mi.querySelector('[data-role="mval"]').value;
+  const cur=parseFloat(curStr.replace(/[^0-9.\-]/g,''));
+  if(isNaN(cur))return;
+  ['yoy','mom','target','budget','custom'].forEach(k=>{
+    const inp=mi.querySelector('[data-role="'+k+'val"]');
+    const calc=mi.querySelector('[data-role="'+k+'calc"]');
+    if(!inp||!calc)return;
+    const v=parseFloat(inp.value.replace(/[^0-9.\-]/g,''));
+    if(isNaN(v)){calc.textContent='';calc.className='mi-calc';return}
+    let pct,label;
+    if(k==='target'){pct=v!==0?((cur/v)*100).toFixed(1):0;label='达成 '+pct+'%';calc.className='mi-calc '+(parseFloat(pct)>=100?'up':'down')}
+    else if(k==='budget'){const diff=cur-v;pct=v!==0?((diff/v)*100).toFixed(1):0;label=(diff>=0?'+':'')+pct+'%';calc.className='mi-calc '+(diff>=0?'up':'down')}
+    else{const diff=cur-v;pct=v!==0?((diff/v)*100).toFixed(1):0;label=(diff>=0?'+':'')+pct+'%';calc.className='mi-calc '+(diff>0?'up':diff<0?'down':'flat')}
+    calc.textContent=label;
+  });
+}
+
+function delMetric(btn){btn.closest('.mi').remove()}
+function delGroup(btn){btn.closest('.mg').remove();toast('指标组已删除','info')}
+
+function collectMetrics(){
+  const groups=[];
+  document.querySelectorAll('.mg').forEach(g=>{
+    const metrics=[];
+    g.querySelectorAll('.mi').forEach(m=>{
+      const trendEl=m.querySelector('[data-role="mtrend"]');
+      const changeEl=m.querySelector('[data-role="mchange"]');
+      const d={name:m.querySelector('[data-role="mname"]').value,value:m.querySelector('[data-role="mval"]').value,change:changeEl?changeEl.value:'',trend:trendEl?trendEl.value:'flat'};
+      ['yoy','mom','target','budget','custom'].forEach(k=>{
+        const inp=m.querySelector('[data-role="'+k+'val"]');if(inp){d[k+'Val']=inp.value;const calc=m.querySelector('[data-role="'+k+'calc"]');if(calc)d[k+'Calc']=calc.textContent}
+        if(k==='custom'){const lbl=m.querySelector('[data-role="customlabel"]');if(lbl)d.customLabel=lbl.value;const ct=m.querySelector('[data-role="customtrend"]');if(ct)d.customTrend=ct.value;const cc=m.querySelector('[data-role="customchange"]');if(cc)d.customChange=cc.value}
+      });
+      metrics.push(d);
+    });
+    groups.push({name:g.querySelector('[data-role="gname"]').value,color:g.querySelector('[data-role="gcolor"]').value,metrics});
+  });
+  return groups;
+}
+
+/* No default metric group on load - metrics are optional */
+
+/* ==== CHART HELPERS ==== */
+function getChartSizeMaxW(s){return{small:'400px',medium:'600px',large:'800px',full:'100%'}[s]||'600px'}
+function chartTypeOpts(){return '<option value="bar">'+t('chartBar')+'</option><option value="line">'+t('chartLine')+'</option><option value="pie">'+t('chartPie')+'</option><option value="doughnut">'+t('chartDoughnut')+'</option><option value="radar">'+t('chartRadar')+'</option><option value="polarArea">'+t('chartPolar')+'</option><option value="scatter">'+t('chartScatter')+'</option><option value="stackedBar">'+t('chartStackedBar')+'</option><option value="combo">'+t('chartCombo')+'</option>'}
+function chartSizeOpts(){return '<option value="small">'+t('sizeSmall')+'</option><option value="medium" selected>'+t('sizeMedium')+'</option><option value="large">'+t('sizeLarge')+'</option><option value="full">'+t('sizeFull')+'</option>'}
+function generatePalette(base,count){var colors=[base];var hsl=hexToHSL(base);for(var i=1;i<count;i++){var h=(hsl[0]+i*(360/count))%360;colors.push(hslToHex(h,Math.min(hsl[1]+10,90),Math.max(hsl[2]-5,35)))}return colors}
+function hexToHSL(hex){var r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slice(3,5),16)/255,b=parseInt(hex.slice(5,7),16)/255;var max=Math.max(r,g,b),min=Math.min(r,g,b),l=(max+min)/2,h=0,s=0;if(max!==min){var d=max-min;s=l>.5?d/(2-max-min):d/(max+min);if(max===r)h=((g-b)/d+(g<b?6:0))/6;else if(max===g)h=((b-r)/d+2)/6;else h=((r-g)/d+4)/6}return[h*360,s*100,l*100]}
+function hslToHex(h,s,l){h/=360;s/=100;l/=100;var r,g,b;if(s===0){r=g=b=l}else{var hue2rgb=function(p,q,t){if(t<0)t+=1;if(t>1)t-=1;if(t<1/6)return p+(q-p)*6*t;if(t<1/2)return q;if(t<2/3)return p+(q-p)*(2/3-t)*6;return p};var q=l<.5?l*(1+s):l+s-l*s,p=2*l-q;r=hue2rgb(p,q,h+1/3);g=hue2rgb(p,q,h);b=hue2rgb(p,q,h-1/3)}return'#'+[r,g,b].map(x=>Math.round(x*255).toString(16).padStart(2,'0')).join('')}
+
+/* ==== CHARTS (multi-dataset, combo, all types) ==== */
+function addChart(forceType){
+  var id=chartCnt++;var container=document.getElementById('chartsContainer');var isTable=forceType==='table';
+  var div=document.createElement('div');div.className='chart-block';div.dataset.chartId=id;
+  if(isTable){
+    div.innerHTML='<div class="cb-hdr"><span class="drag-h"><i class="fas fa-grip-vertical"></i></span><input type="text" class="fi chart-title-input" placeholder="表格标题" value="数据表格" style="flex:1;max-width:300px"><select class="fsel chart-size-sel" style="width:100px">'+chartSizeOpts()+'</select><button class="bic" onclick="delChart(this)" title="删除"><i class="fas fa-trash-alt"></i></button></div><input type="hidden" class="chart-type-val" value="table"><div class="fg" style="margin-bottom:12px"><label class="fl">表格数据 <span style="color:var(--txm);font-weight:400;font-size:11px">(第一行为表头)</span></label><textarea class="fta chart-data-input" rows="6" oninput="schedChart('+id+')" placeholder="名称,数值,变化&#10;产品A,1200,+15%">名称,数值,变化\n产品A,1200,+15%\n产品B,980,-3%\n产品C,1560,+22%</textarea></div><div class="fg" style="margin-bottom:12px"><label class="fl">备注</label><input type="text" class="fi chart-note-input" placeholder="如：数据截至2024年Q3"></div><div class="tbl-wrap" id="chartPreview_'+id+'" style="border:1px solid var(--bd);border-radius:var(--rad);padding:2px;background:var(--bgc);overflow:auto;max-height:400px"></div>';
+  }else{
+    div.innerHTML='<div class="cb-hdr"><span class="drag-h"><i class="fas fa-grip-vertical"></i></span><input type="text" class="fi chart-title-input" placeholder="图表标题" value="图表 '+(id+1)+'" style="flex:1;max-width:300px" oninput="schedChart('+id+')"><select class="fsel chart-type-val" style="width:140px" onchange="schedChart('+id+')">'+chartTypeOpts()+'</select><select class="fsel chart-size-sel" style="width:100px">'+chartSizeOpts()+'</select><input type="color" class="chart-color-input" value="#3182ce" title="主色调" style="width:38px;height:34px;border:1px solid var(--bd);border-radius:6px;cursor:pointer;padding:2px" onchange="schedChart('+id+')"><button class="bic" onclick="delChart(this)" title="删除"><i class="fas fa-trash-alt"></i></button></div><div class="ccfg"><div><div class="ds-container" data-chart-id="'+id+'"><div class="dataset-block" data-ds-index="0"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><label class="fl" style="margin:0;font-weight:600"><i class="fas fa-database"></i> '+t('dataset')+' 1</label><input type="text" class="fi ds-name" placeholder="数据集名称" value="'+t('dataset')+' 1" style="flex:1;max-width:160px" oninput="schedChart('+id+')"><input type="color" class="ds-color" value="#3182ce" style="width:32px;height:28px;border:1px solid var(--bd);border-radius:4px;cursor:pointer;padding:1px" onchange="schedChart('+id+')"><select class="fsel ds-type-toggle" style="width:80px;display:none" onchange="schedChart('+id+')"><option value="bar">Bar</option><option value="line">Line</option></select></div><div class="fg" style="margin-bottom:12px"><label class="fl">'+t('dataset')+' <span style="color:var(--txm);font-weight:400;font-size:11px">(label,value per line)</span></label><textarea class="fta ds-data" rows="7" oninput="schedChart('+id+')" placeholder="一月,120&#10;二月,185">一月,120\n二月,185\n三月,210\n四月,175\n五月,230\n六月,290</textarea></div></div></div><div class="bgrp" style="margin-top:4px;margin-bottom:12px"><button class="btn btn-g" onclick="addDataset('+id+')" style="padding:5px 12px;font-size:12px"><i class="fas fa-plus"></i> '+t('addDataset')+'</button></div><div class="fg"><label class="fl">'+t('chartNote')+'</label><input type="text" class="fi chart-note-input" placeholder="如：数据截至2024年Q3"></div></div><div class="cprev"><canvas id="chartCanvas_'+id+'"></canvas></div></div>';
+  }
+  container.appendChild(div);
+  if(!isTable)setTimeout(()=>updateChart(id),200);else updateTablePrev(id);
+  initChartSortable();toast(isTable?'已添加数据表格':'已添加图表','success');
+}
+
+function delChart(btn){var block=btn.closest('.chart-block');var id=block.dataset.chartId;if(chartInst[id]){chartInst[id].destroy();delete chartInst[id]}block.remove();toast('已删除','info')}
+function schedChart(id){clearTimeout(chartTimers[id]);chartTimers[id]=setTimeout(()=>{var block=document.querySelector('.chart-block[data-chart-id="'+id+'"]');if(!block)return;var type=block.querySelector('.chart-type-val').value;if(type==='table')updateTablePrev(id);else updateChart(id)},400)}
+
+function addDataset(chartId){
+  var container=document.querySelector('.ds-container[data-chart-id="'+chartId+'"]');if(!container)return;
+  var idx=container.querySelectorAll('.dataset-block').length;
+  var colors=['#3182ce','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16'];var color=colors[idx%colors.length];
+  var ds=document.createElement('div');ds.className='dataset-block';ds.dataset.dsIndex=idx;
+  ds.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;margin-top:12px;padding-top:12px;border-top:1px dashed var(--bd)"><label class="fl" style="margin:0;font-weight:600"><i class="fas fa-database"></i> '+t('dataset')+' '+(idx+1)+'</label><input type="text" class="fi ds-name" placeholder="数据集名称" value="'+t('dataset')+' '+(idx+1)+'" style="flex:1;max-width:160px" oninput="schedChart('+chartId+')"><input type="color" class="ds-color" value="'+color+'" style="width:32px;height:28px;border:1px solid var(--bd);border-radius:4px;cursor:pointer;padding:1px" onchange="schedChart('+chartId+')"><select class="fsel ds-type-toggle" style="width:80px;display:none" onchange="schedChart('+chartId+')"><option value="bar">Bar</option><option value="line">Line</option></select><button class="bic" onclick="rmDataset(this,'+chartId+')" title="删除" style="width:28px;height:28px"><i class="fas fa-times"></i></button></div><div class="fg" style="margin-bottom:8px"><textarea class="fta ds-data" rows="5" oninput="schedChart('+chartId+')" placeholder="一月,100&#10;二月,150">一月,100\n二月,150\n三月,180\n四月,160\n五月,200\n六月,240</textarea></div>';
+  container.appendChild(ds);updateComboToggles(chartId);schedChart(chartId);toast(t('dataset')+' '+(idx+1)+' added','success');
+}
+
+function rmDataset(btn,chartId){var block=btn.closest('.dataset-block');var container=block.parentElement;if(container.querySelectorAll('.dataset-block').length<=1){toast('At least one dataset required','warning');return}block.remove();schedChart(chartId)}
+
+function updateComboToggles(chartId){var block=document.querySelector('.chart-block[data-chart-id="'+chartId+'"]');if(!block)return;var type=block.querySelector('.chart-type-val').value;var isCombo=type==='combo';block.querySelectorAll('.ds-type-toggle').forEach(sel=>{sel.style.display=isCombo?'block':'none'})}
+
+function parseChartBlockData(id){
+  var block=document.querySelector('.chart-block[data-chart-id="'+id+'"]');if(!block)return{labels:[],datasets:[],extras:[]};
+  var dsBlocks=block.querySelectorAll('.dataset-block');
+  if(!dsBlocks.length){var oldInput=block.querySelector('.chart-data-input');if(oldInput){var raw=oldInput.value.trim();var labels=[],values=[],extras=[];raw.split('\n').forEach(l=>{var p=l.replace(/，/g,',').split(',');if(p.length>=2){labels.push(p[0].trim());values.push(parseFloat(p[1].trim())||0);var extra=p.slice(2).map(c=>c.trim()).filter(c=>c);extras.push(extra)}});return{labels,datasets:[{name:'Data',data:values,color:'#3182ce',dsType:'bar'}],extras}}return{labels:[],datasets:[],extras:[]}}
+  var allLabels=[];var datasets=[];var allExtras=[];
+  dsBlocks.forEach((ds,i)=>{var name=ds.querySelector('.ds-name')?ds.querySelector('.ds-name').value:('Dataset '+(i+1));var color=ds.querySelector('.ds-color')?ds.querySelector('.ds-color').value:'#3182ce';var dsType=ds.querySelector('.ds-type-toggle')?ds.querySelector('.ds-type-toggle').value:'bar';var raw=ds.querySelector('.ds-data').value.trim();var labels=[],values=[],extras=[];raw.split('\n').forEach(l=>{var p=l.replace(/，/g,',').split(',');if(p.length>=2){labels.push(p[0].trim());values.push(parseFloat(p[1].trim())||0);var extra=p.slice(2).map(c=>c.trim()).filter(c=>c);extras.push(extra)}});if(i===0){allLabels=labels;allExtras=extras}datasets.push({name,data:values,color,dsType})});
+  return{labels:allLabels,datasets,extras:allExtras};
+}
+
+function updateChart(id){
+  var block=document.querySelector('.chart-block[data-chart-id="'+id+'"]');if(!block)return;
+  var canvas=document.getElementById('chartCanvas_'+id);if(!canvas)return;
+  var ctx=canvas.getContext('2d');if(chartInst[id]){chartInst[id].destroy();delete chartInst[id]}
+  var parsed=parseChartBlockData(id);var labels=parsed.labels;if(!labels.length)return;
+  var type=block.querySelector('.chart-type-val').value;var title=block.querySelector('.chart-title-input').value;
+  updateComboToggles(id);
+  var isPie=type==='pie'||type==='doughnut'||type==='polarArea';var isRadar=type==='radar';var isScatter=type==='scatter';var isStacked=type==='stackedBar';var isCombo=type==='combo';
+  var chartType=isStacked?'bar':(isCombo?'bar':(isScatter?'scatter':type));
+  var datasets=parsed.datasets.map(ds=>{var pal=generatePalette(ds.color,labels.length);var dsObj={label:ds.name,data:isScatter?labels.map((_,i)=>({x:i,y:ds.data[i]||0})):ds.data,backgroundColor:isPie?pal:(ds.color+'44'),borderColor:isPie?'#fff':ds.color,borderWidth:2,tension:.3,fill:type==='line',pointBackgroundColor:isRadar?ds.color:undefined};if(isCombo){dsObj.type=ds.dsType||'bar';if(ds.dsType==='line'){dsObj.backgroundColor=ds.color+'22';dsObj.fill=false}}return dsObj});
+  var config={type:chartType,data:{labels,datasets},options:{responsive:true,maintainAspectRatio:true,plugins:{title:{display:!!title,text:title,font:{size:14,weight:'600'},color:'#1e293b'},legend:{display:parsed.datasets.length>1||isPie||isRadar,position:'bottom',labels:{padding:12,font:{size:11}}},tooltip:{callbacks:{afterBody:function(ctx){var idx=ctx[0].dataIndex;if(parsed.extras&&parsed.extras[idx]&&parsed.extras[idx].length){return parsed.extras[idx].map(function(e){return e})}return[]}}}},scales:(!isPie&&!isRadar)?{y:{beginAtZero:true,grid:{color:'#f1f5f9'},ticks:{font:{size:11}},stacked:isStacked},x:{grid:{display:false},ticks:{font:{size:11}},stacked:isStacked}}:undefined}};
+  chartInst[id]=new Chart(ctx,config);
+}
+
+function updateTablePrev(id){var block=document.querySelector('.chart-block[data-chart-id="'+id+'"]');if(!block)return;var preview=document.getElementById('chartPreview_'+id);if(!preview)return;var raw=block.querySelector('.chart-data-input').value.trim();var rows=raw.split('\n').map(l=>l.split(',').map(c=>c.trim()));if(!rows.length){preview.innerHTML='<p style="color:var(--txm);padding:20px">请输入表格数据</p>';return}var html='<table class="tbl-prev"><thead><tr>';rows[0].forEach(h=>{html+='<th>'+escH(h)+'</th>'});html+='</tr></thead><tbody>';rows.slice(1).forEach(r=>{html+='<tr>';r.forEach(c=>{html+='<td>'+escH(c)+'</td>'});html+='</tr>'});html+='</tbody></table>';preview.innerHTML=html}
+
+function initChartSortable(){var c=document.getElementById('chartsContainer');if(c._sortable)c._sortable.destroy();c._sortable=new Sortable(c,{handle:'.drag-h',animation:200,ghostClass:'sortable-ghost'})}
+
+// Init default chart
+addChart();
+
+/* ==== EXCEL ==== */
+function dlExcelTpl(){var wb=XLSX.utils.book_new();var meta=[['字段 Field','值 Value'],['报告标题',''],['报告副标题',''],['报告日期',''],['报告作者',''],['汇报对象',''],['报告摘要','']];var ws1=XLSX.utils.aoa_to_sheet(meta);ws1['!cols']=[{wch:15},{wch:50}];XLSX.utils.book_append_sheet(wb,ws1,'报告信息');var mh=[['组名称 Group','指标名称 Name','本期值 Current','变化 Change','趋势 Trend','同比值 YoY','环比值 MoM','目标值 Target','预算值 Budget','自定义标签','自定义值']];var ms=[['核心指标','总营收','2800000','+12.5%','up','2500000','2650000','3000000','2900000','',''],['核心指标','用户数','15280','+8.3%','up','14100','14800','16000','15000','','']];var ws2=XLSX.utils.aoa_to_sheet([...mh,...ms]);ws2['!cols']=Array(11).fill({wch:14});XLSX.utils.book_append_sheet(wb,ws2,'指标数据');var ch=[['图表标题','标签 Label','数值 Value']];var cs=[['月度营收','一月',120],['月度营收','二月',185],['月度营收','三月',210]];var ws3=XLSX.utils.aoa_to_sheet([...ch,...cs]);ws3['!cols']=[{wch:14},{wch:12},{wch:10}];XLSX.utils.book_append_sheet(wb,ws3,'图表数据');XLSX.writeFile(wb,'SmartBrief_Template.xlsx');toast('Excel模板已下载','success')}
+
+function uploadExcel(event){var file=event.target.files[0];if(!file)return;var reader=new FileReader();reader.onload=e=>{try{var wb=XLSX.read(e.target.result,{type:'array'});var infoSheet=wb.Sheets['报告信息'];if(infoSheet){var info=XLSX.utils.sheet_to_json(infoSheet,{header:1});var map={};info.forEach(r=>{if(r[0]&&r[1])map[r[0]]=r[1]});if(map['报告标题'])document.getElementById('rTitle').value=map['报告标题'];if(map['报告副标题'])document.getElementById('rSub').value=map['报告副标题'];if(map['报告作者'])document.getElementById('rAuth').value=map['报告作者'];if(map['汇报对象'])document.getElementById('rAud').value=map['汇报对象'];if(map['报告摘要'])document.getElementById('rSum').value=map['报告摘要']}var ms=wb.Sheets['指标数据'];if(ms){var data=XLSX.utils.sheet_to_json(ms,{header:1}).slice(1).filter(r=>r[0]);if(data.length){var grouped={};data.forEach(r=>{var gn=r[0]||'默认';if(!grouped[gn])grouped[gn]=[];grouped[gn].push({name:r[1]||'',value:String(r[2]||''),change:r[3]||'',trend:r[4]||'up',yoyVal:r[5]?String(r[5]):'',momVal:r[6]?String(r[6]):'',targetVal:r[7]?String(r[7]):'',budgetVal:r[8]?String(r[8]):'',customLabel:r[9]||'',customVal:r[10]?String(r[10]):''})});document.getElementById('mGroups').innerHTML='';var colors=['#3182ce','#10b981','#f59e0b','#ef4444','#8b5cf6'];var ci=0;Object.entries(grouped).forEach(([gn,ms])=>addMGroup(gn,colors[ci++%5],ms))}}var cs=wb.Sheets['图表数据'];if(cs){var cdata=XLSX.utils.sheet_to_json(cs,{header:1}).slice(1).filter(r=>r[1]!==undefined);if(cdata.length){var chartGroups={};cdata.forEach(r=>{var cn=r[0]||'图表';if(!chartGroups[cn])chartGroups[cn]=[];chartGroups[cn].push({label:r[1],value:r[2]})});document.getElementById('chartsContainer').innerHTML='';Object.values(chartInst).forEach(c=>c.destroy());chartInst={};Object.entries(chartGroups).forEach(([cname,items])=>{addChart();var lastBlock=document.querySelector('.chart-block:last-child');lastBlock.querySelector('.chart-title-input').value=cname;var dsData=lastBlock.querySelector('.ds-data');if(dsData)dsData.value=items.map(it=>it.label+','+it.value).join('\n');schedChart(lastBlock.dataset.chartId)})}}toast('Excel数据已导入','success')}catch(err){toast('解析失败: '+err.message,'error')}};reader.readAsArrayBuffer(file);event.target.value=''}
+
+/* ==== AI ANALYSIS ==== */
+var _lastAiMode='summary';
+function genAI(mode){
+  var title=document.getElementById('rTitle').value||'未命名报告';var summary=document.getElementById('rSum').value||'';var focus=document.getElementById('aiFocus').value||'';var metrics=collectMetrics();var resDiv=document.getElementById('aiRes'),contDiv=document.getElementById('aiCont');var existing=contDiv.innerText||'';var out='';
+  var allChartData=[];document.querySelectorAll('.chart-block').forEach(b=>{var pd=parseChartBlockData(b.dataset.chartId);if(pd.labels.length&&pd.datasets.length)allChartData.push({title:b.querySelector('.chart-title-input').value,labels:pd.labels,values:pd.datasets[0].data})});
+  var allM=[];metrics.forEach(g=>g.metrics.forEach(m=>{if(m.name)allM.push(Object.assign({},m,{group:g.name}))}));
+  if(mode!=='visual')_lastAiMode=mode;
+
+  if(mode==='summary'){
+    var isInformal=_currentPreset==='informal';var isMkt=_currentPreset==='marketing';var isTech=_currentPreset==='tech';var isFormal=_currentPreset==='formal';
+    if(isInformal){
+      out='<strong>&#x1F4CB; Quick Summary</strong><br><br>';out+='Hey! Here\'s the rundown for「'+escH(title)+'」'+(summary?' &#x2014; '+escH(summary.substring(0,120))+'。':'')+'<br>';if(focus)out+='&#x1F3AF; Focus: '+escH(focus)+'<br>';out+='<br><strong>&#x1F4CA; Key Numbers:</strong><ul>';
+      allM.forEach(m=>{var emoji=m.trend==='up'?'&#x1F4C8;':m.trend==='down'?'&#x1F4C9;':'&#x27A1;&#xFE0F;';var compText='';if(m.yoyCalc)compText+=' | YoY '+m.yoyCalc;if(m.targetCalc)compText+=' | Target '+m.targetCalc;out+='<li>'+emoji+' <strong>'+escH(m.name)+'</strong>: '+escH(m.value)+(m.change?' ('+escH(m.change)+')':'')+compText+'</li>'});
+      out+='</ul>';out+='<br>&#x1F4A1; <strong>TL;DR:</strong> Focus on what\'s working, fix what\'s not, keep iterating! &#x1F680;';
+    }else if(isFormal){
+      out='<strong>Executive Summary</strong><br><br>';out+='本报告「'+escH(title)+'」'+(summary?'就以下内容进行了系统性分析：'+escH(summary.substring(0,150))+'。':'对核心业务指标进行了全面分析。');if(focus)out+='<br>分析重点: '+escH(focus)+'。';out+='<br><br><strong>一、关键指标概览:</strong><ul>';
+      allM.forEach(m=>{var tT=m.trend==='up'?'呈增长态势':m.trend==='down'?'呈下降态势':'保持平稳';var compText='';if(m.yoyCalc)compText+='，同比变化 '+m.yoyCalc;if(m.momCalc)compText+='，环比变化 '+m.momCalc;if(m.targetCalc)compText+='，目标达成率 '+m.targetCalc;out+='<li><strong>'+escH(m.name)+'</strong>: '+escH(m.value)+(m.change?' ('+escH(m.change)+')':'')+' — '+tT+compText+'</li>'});
+      out+='</ul>';out+='<br><strong>二、综合建议:</strong><br>建议管理层重点关注资源优化配置，强化高增长领域投入，同时建立预警机制以防范潜在风险。';
+    }else if(isMkt){
+      out='<strong>Campaign Performance Summary</strong><br><br>';out+='Report: '+escH(title)+'<br>'+(summary?escH(summary.substring(0,120))+'<br>':'');out+='<br><strong>Performance Metrics:</strong><ul>';
+      allM.forEach(m=>{var icon=m.trend==='up'?'&#x2705;':m.trend==='down'?'&#x274C;':'&#x25AA;';out+='<li>'+icon+' <strong>'+escH(m.name)+'</strong>: '+escH(m.value)+(m.change?' ('+escH(m.change)+')':'')+(m.targetCalc?' | Target: '+m.targetCalc:'')+'</li>'});
+      out+='</ul><br><strong>Recommended Actions:</strong><ol><li>Double down on top-performing channels</li><li>A/B test underperforming creatives</li><li>Optimize conversion funnel</li></ol>';
+    }else{
+      out='<strong>执行摘要 Executive Summary</strong><br><br>';out+='本报告「'+escH(title)+'」'+(summary?'概述：'+escH(summary.substring(0,150))+'。':'对核心业务指标进行了全面分析。');if(focus)out+='<br>重点关注 Focus: '+escH(focus)+'。';out+='<br><br><strong>关键指标 Key Metrics:</strong><ul>';
+      allM.forEach(m=>{var tT=m.trend==='up'?'呈上升趋势':m.trend==='down'?'呈下降趋势':'保持稳定';var compText='';if(m.yoyCalc)compText+='，YoY '+m.yoyCalc;if(m.momCalc)compText+='，MoM '+m.momCalc;if(m.targetCalc)compText+='，Target '+m.targetCalc;if(m.budgetCalc)compText+='，Budget '+m.budgetCalc;out+='<li><strong>'+escH(m.name)+'</strong>: '+escH(m.value)+(m.change?' ('+escH(m.change)+')':'')+' — '+tT+compText+'</li>'});
+      out+='</ul>';if(allChartData.length){out+='<br><strong>数据趋势:</strong><ul>';allChartData.forEach(cd=>{var max=Math.max(...cd.values),avg=(cd.values.reduce((a,b)=>a+b,0)/cd.values.length).toFixed(1);out+='<li>"'+escH(cd.title)+'" 最高值'+max+'，均值'+avg+'</li>'});out+='</ul>'}
+      out+='<br>综合建议：优化资源配置，聚焦高增长领域，建立预警机制。';
+    }
+  }else if(mode==='insight'){
+    out='<strong>数据洞察 Data Insights</strong><br><br>';allChartData.forEach(cd=>{if(!cd.values.length)return;var max=Math.max(...cd.values),min=Math.min(...cd.values),avg=(cd.values.reduce((a,b)=>a+b,0)/cd.values.length).toFixed(1);var maxI=cd.values.indexOf(max),minI=cd.values.indexOf(min);var trend=cd.values[cd.values.length-1]>cd.values[0]?'上升 Upward':'下降 Downward';var vol=((max-min)/parseFloat(avg)*100).toFixed(1);out+='<strong>'+escH(cd.title)+':</strong><br>• 趋势: '+trend+'<br>• Peak: '+escH(cd.labels[maxI])+' ('+max+') | Valley: '+escH(cd.labels[minI])+' ('+min+')<br>• Avg: '+avg+' | Volatility: '+vol+'%<br><br>'});
+    allM.forEach(m=>{if(m.targetCalc)out+='• '+escH(m.name)+': Target '+m.targetCalc+(parseFloat(m.targetCalc)>=100?' (达标)':' (未达标)')+'<br>'});
+  }else if(mode==='swot'){
+    out='<strong>SWOT 分析</strong><br><br>';var strengths=[],weaknesses=[];allM.forEach(m=>{if(m.trend==='up'||(m.targetCalc&&parseFloat(m.targetCalc)>=100))strengths.push(m.name+': '+m.value);if(m.trend==='down')weaknesses.push(m.name+': '+m.value+(m.change?' ('+m.change+')':''))});
+    if(!strengths.length)strengths.push('需要进一步分析');if(!weaknesses.length)weaknesses.push('暂未发现明显弱势');
+    var sIcon=_currentPreset==='informal'?'&#x1F4AA; ':'',wIcon=_currentPreset==='informal'?'&#x26A0;&#xFE0F; ':'',oIcon=_currentPreset==='informal'?'&#x1F31F; ':'',tIcon=_currentPreset==='informal'?'&#x26D4; ':'';
+    out+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div style="background:#d1fae5;padding:14px;border-radius:8px"><strong style="color:#065f46">'+sIcon+'S - Strengths</strong><ul>'+strengths.map(s=>'<li>'+escH(s)+'</li>').join('')+'</ul></div><div style="background:#fef2f2;padding:14px;border-radius:8px"><strong style="color:#991b1b">'+wIcon+'W - Weaknesses</strong><ul>'+weaknesses.map(s=>'<li>'+escH(s)+'</li>').join('')+'</ul></div><div style="background:#eff6ff;padding:14px;border-radius:8px"><strong style="color:#1e40af">'+oIcon+'O - Opportunities</strong><ul><li>'+(_currentPreset==='informal'?'New markets are opening up! &#x1F680;':'数字化转型带来新增长')+'</li><li>'+(_currentPreset==='informal'?'Room to grow and expand &#x1F4C8;':'市场扩展空间广阔')+'</li></ul></div><div style="background:#fefce8;padding:14px;border-radius:8px"><strong style="color:#854d0e">'+tIcon+'T - Threats</strong><ul><li>'+(_currentPreset==='informal'?'Competition is heating up &#x1F525;':'市场竞争加剧')+'</li><li>'+(_currentPreset==='informal'?'Macro uncertainty ahead &#x1F327;&#xFE0F;':'宏观环境不确定性')+'</li></ul></div></div>';
+  }else if(mode==='anomaly'){
+    out='<strong>异常检测报告 Anomaly Detection</strong><br><br>';var cnt=0;allChartData.forEach(cd=>{var avg=cd.values.reduce((a,b)=>a+b,0)/cd.values.length;var std=Math.sqrt(cd.values.reduce((s,v)=>s+Math.pow(v-avg,2),0)/cd.values.length);var hi=avg+1.5*std,lo=avg-1.5*std;cd.values.forEach((v,i)=>{if(v>hi){cnt++;out+='[!] '+escH(cd.title)+' - '+escH(cd.labels[i])+' ('+v+') 高于正常范围 ('+lo.toFixed(1)+' ~ '+hi.toFixed(1)+')<br>'}if(v<lo){cnt++;out+='[!] '+escH(cd.title)+' - '+escH(cd.labels[i])+' ('+v+') 低于正常范围<br>'}})});
+    allM.forEach(m=>{var cv=parseFloat(m.change);if(!isNaN(cv)&&Math.abs(cv)>20){cnt++;out+='[!] 指标"'+escH(m.name)+'" 变化幅度达'+escH(m.change)+'，超出正常波动<br>'}});
+    if(!cnt)out+='未检测到明显异常。所有指标在正常范围内。';else out+='<br><strong>总结:</strong> 共发现'+cnt+'个异常点。';
+  }else if(mode==='trend'){
+    out='<strong>趋势预测 Trend Forecast</strong><br><br>';allChartData.forEach(cd=>{if(cd.values.length<3)return;var n=cd.values.length,xAvg=(n-1)/2,yAvg=cd.values.reduce((a,b)=>a+b,0)/n,num=0,den=0;cd.values.forEach((y,x)=>{num+=(x-xAvg)*(y-yAvg);den+=(x-xAvg)*(x-xAvg)});var slope=den?num/den:0,intercept=yAvg-slope*xAvg;var next1=(slope*n+intercept).toFixed(1),next2=(slope*(n+1)+intercept).toFixed(1);var dir=slope>0?'上升':slope<0?'下降':'平稳';out+='<strong>"'+escH(cd.title)+'"</strong>: '+dir+'趋势 (slope: '+slope.toFixed(2)+')<br>预测下期: <strong>'+next1+'</strong>，下两期: <strong>'+next2+'</strong><br><br>'});
+    if(!allChartData.length)out+='请添加图表数据以启用趋势预测。';
+  }else if(mode==='marketing'){
+    out='<strong>市场营销分析 Marketing Analysis</strong><br><br>';
+    out+='<strong>1. 渠道效果评估 Channel Performance</strong><br>';
+    if(allM.length){out+='基于 '+allM.length+' 项核心指标的分析：<ul>';allM.forEach(m=>{out+='<li><strong>'+escH(m.name)+'</strong> ('+escH(m.value)+'): '+(m.trend==='up'?'表现积极，建议加大投入':'需要优化策略，控制成本')+'</li>'});out+='</ul>'}else{out+='暂无指标数据，请先添加营销相关KPI。<br>'}
+    out+='<br><strong>2. 用户获取成本 (CAC) 优化建议</strong><ul><li>高ROI渠道：建议增加预算分配比例 20-30%</li><li>低效渠道：建议A/B测试或重新评估投放策略</li><li>新兴渠道：关注短视频、社交媒体等新流量入口</li></ul>';
+    out+='<br><strong>3. 转化率优化 Conversion Optimization</strong><ul><li>优化落地页体验，缩短用户决策路径</li><li>个性化推荐提升转化效率</li><li>建立用户分层运营体系</li></ul>';
+    out+='<br><strong>4. 品牌建设建议 Brand Strategy</strong><ul><li>加强内容营销，建立行业思想领导力</li><li>用户口碑裂变，降低获客成本</li><li>跨渠道整合营销，统一品牌调性</li></ul>';
+  }else if(mode==='competitor'){
+    out='<strong>竞争对手分析 Competitor Analysis</strong><br><br>';
+    out+='<strong>1. 竞争格局概览</strong><br>基于现有数据维度，当前市场竞争态势分析如下：<br><br>';
+    if(allM.length){var upCount=allM.filter(m=>m.trend==='up').length;var dnCount=allM.filter(m=>m.trend==='down').length;out+='当前 '+upCount+' 项指标呈上升趋势，'+dnCount+' 项呈下降趋势。<br><br>'}
+    out+='<strong>2. 竞争优势识别 Competitive Advantages</strong><ul>';
+    allM.filter(m=>m.trend==='up').forEach(m=>{out+='<li><strong>'+escH(m.name)+'</strong>: '+escH(m.value)+' — 领先表现，可作为差异化竞争壁垒</li>'});
+    if(!allM.filter(m=>m.trend==='up').length)out+='<li>需要进一步数据支撑竞争优势判断</li>';
+    out+='</ul><br><strong>3. 市场机会识别</strong><ul><li>关注竞品薄弱环节，集中资源突破</li><li>技术创新驱动差异化</li><li>客户体验优化建立护城河</li></ul>';
+    out+='<br><strong>4. 应对策略建议</strong><ol><li>持续监测竞品动态和市场份额变化</li><li>加强核心竞争力投入</li><li>探索蓝海市场机会</li><li>建立快速响应机制</li></ol>';
+  }else if(mode==='risk'){
+    out='<strong>风险评估报告 Risk Assessment</strong><br><br>';
+    out+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
+    var highRisks=[],medRisks=[];
+    allM.forEach(m=>{var cv=parseFloat(m.change);if(!isNaN(cv)&&cv<-10)highRisks.push(m);else if(m.trend==='down')medRisks.push(m)});
+    out+='<div style="background:rgba(239,68,68,.1);padding:14px;border-radius:8px;border-left:4px solid #ef4444"><strong style="color:#dc2626">高风险 High Risk</strong><ul style="margin-top:6px">';
+    if(highRisks.length){highRisks.forEach(m=>{out+='<li>'+escH(m.name)+': '+escH(m.value)+' ('+escH(m.change)+')</li>'})}else{out+='<li>暂未识别高风险项</li>'}
+    out+='</ul></div>';
+    out+='<div style="background:rgba(245,158,11,.1);padding:14px;border-radius:8px;border-left:4px solid #f59e0b"><strong style="color:#d97706">中风险 Medium Risk</strong><ul style="margin-top:6px">';
+    if(medRisks.length){medRisks.forEach(m=>{out+='<li>'+escH(m.name)+': '+escH(m.value)+'</li>'})}else{out+='<li>暂未识别中风险项</li>'}
+    out+='</ul></div></div>';
+    out+='<br><strong>风险缓解建议 Mitigation Strategies:</strong><ol><li>建立关键指标预警阈值，及时响应</li><li>制定应急预案，降低潜在损失</li><li>分散风险敞口，避免单一依赖</li><li>定期审查和更新风险矩阵</li></ol>';
+  }else if(mode==='formalize'){
+    if(!existing){toast('请先生成内容','warning');return}out='<strong>[正式版本 Formal Version]</strong><br><br>致 相关领导：<br><br>'+existing.replace(/建议/g,'谨建议').replace(/分析/g,'深度分析')+'<br><br>以上内容仅供决策参考。<br><br>此致<br>敬礼';
+  }else if(mode==='expand'){
+    if(!existing){toast('请先生成内容','warning');return}out=contDiv.innerHTML;out+='<br><br><strong>补充分析 Additional Analysis:</strong><br><br><strong>1. 宏观环境:</strong> 当前市场竞争加剧，行业增速放缓。<br><br><strong>2. 风险提示:</strong><ul><li>政策调整影响</li><li>技术变革不确定性</li><li>人才竞争</li></ul><strong>3. 行动建议:</strong><ol><li>加强数据驱动决策</li><li>优化资源配置，聚焦ROI</li><li>建立风险预警机制</li><li>持续跟踪竞争对手</li></ol>';
+  }else if(mode==='visual'){
+    // Show in the purple gradient panel instead of the ai-res div
+    var vPanel=document.getElementById('aiVisualPanel');var vContent=document.getElementById('aiVisualContent');
+    var vOut='<div style="margin-bottom:16px;font-size:15px;font-weight:600">基于您录入的 '+allM.length+' 项指标数据，建议使用以下可视化方案：</div>';
+    var vIdx=1;
+    if(allM.length>0){vOut+='<div style="margin-bottom:14px"><div style="font-weight:700;font-size:14px">'+vIdx+'. 📊 KPI 仪表板概览 (Dashboard)</div><div style="padding-left:20px;font-size:13px;opacity:.9;line-height:1.8">类型: 组合图 (柱状图 + 折线图)<br>说明: 柱状图展示各指标本期值，折线图叠加目标值，直观对比达成情况</div></div>';vIdx++}
+    if(allM.some(m=>m.targetCalc)){vOut+='<div style="margin-bottom:14px"><div style="font-weight:700;font-size:14px">'+vIdx+'. 🎯 目标达成率雷达图</div><div style="padding-left:20px;font-size:13px;opacity:.9;line-height:1.8">类型: 雷达图 (Radar)<br>说明: 多维度展示各指标的目标达成情况，识别能力短板</div></div>';vIdx++}
+    if(allM.length>1){vOut+='<div style="margin-bottom:14px"><div style="font-weight:700;font-size:14px">'+vIdx+'. 🧩 业务构成分析</div><div style="padding-left:20px;font-size:13px;opacity:.9;line-height:1.8">类型: 环形图 / 饼图 (Doughnut / Pie)<br>说明: 展示各业务线或指标的占比构成，理解资源分配</div></div>';vIdx++}
+    var upM=allM.filter(m=>m.trend==='up'),dnM=allM.filter(m=>m.trend==='down');
+    if(upM.length||dnM.length){vOut+='<div style="margin-bottom:14px"><div style="font-weight:700;font-size:14px">'+vIdx+'. 📈 增长/下滑对比</div><div style="padding-left:20px;font-size:13px;opacity:.9;line-height:1.8">类型: 发散柱状图 (Diverging Bar)<br>说明: 正向增长 '+upM.length+' 项 / 负向下滑 '+dnM.length+' 项，一目了然对比趋势</div></div>';vIdx++}
+    if(allM.some(m=>m.yoyCalc||m.momCalc)){vOut+='<div style="margin-bottom:14px"><div style="font-weight:700;font-size:14px">'+vIdx+'. 🔄 同比/环比变化瀑布图</div><div style="padding-left:20px;font-size:13px;opacity:.9;line-height:1.8">类型: 瀑布图 (Waterfall)<br>说明: 逐项展示各指标的增减贡献，理解整体变化驱动因素</div></div>';vIdx++}
+    if(allChartData.length){vOut+='<div style="margin-bottom:14px"><div style="font-weight:700;font-size:14px">'+vIdx+'. 📉 趋势预测折线</div><div style="padding-left:20px;font-size:13px;opacity:.9;line-height:1.8">类型: 折线图 + 趋势线 (Line + Trend)<br>说明: 基于已有 '+allChartData.length+' 组图表数据，添加线性回归趋势线辅助预测</div></div>';vIdx++}
+    vOut+='<div style="margin-top:16px;padding:12px 16px;background:rgba(255,255,255,.15);border-radius:8px;font-size:12px;line-height:1.7"><strong>💡 Tip:</strong> 建议保持 3-5 个图表，避免信息过载。关键指标使用颜色编码（绿=正向，红=负向）。可在上方"图表与数据表"模块中直接添加对应图表。</div>';
+    vContent.innerHTML=vOut;vPanel.style.display='block';vPanel.scrollIntoView({behavior:'smooth',block:'nearest'});toast('AI配图建议已生成','success');return;
+  }
+  contDiv.innerHTML=out;resDiv.classList.add('vis');toast('AI内容已生成','success');
+}
+function regenAI(){genAI(_lastAiMode)}
+
+/* ==== TEMPLATE PICKER MODAL ==== */
+function openTplPicker(){var templates=JSON.parse(localStorage.getItem('smartbrief_templates')||'{}');var keys=Object.keys(templates);var modal=document.getElementById('tplPickerModal');var list=document.getElementById('tplPickerList');if(!keys.length){list.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--txm)"><i class="fas fa-inbox" style="font-size:32px;margin-bottom:12px;display:block;color:var(--bdh)"></i><div style="font-size:14px;font-weight:500">暂无已保存模板</div><div style="font-size:12px;margin-top:4px">No saved templates yet. Save one first.</div></div>'}else{list.innerHTML=keys.map(name=>{var tpl=templates[name];var d=new Date(tpl.savedAt);var dateStr=d.toLocaleDateString('zh-CN')+' '+d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});var mCount=0;if(tpl.state&&tpl.state.metrics)tpl.state.metrics.forEach(g=>{mCount+=g.metrics?g.metrics.length:0});var cCount=tpl.state&&tpl.state.charts?tpl.state.charts.length:0;return'<div style="display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--bd);border-radius:10px;margin-bottom:10px;background:var(--bg);transition:all var(--tr);cursor:pointer" onmouseenter="this.style.boxShadow=\'var(--shm)\';this.style.borderColor=\'var(--acc)\'" onmouseleave="this.style.boxShadow=\'none\';this.style.borderColor=\'var(--bd)\'" onclick="closeTplPicker();loadTemplate(\''+esc(name.replace(/'/g,"\\'"))+'\')">'+'<div style="width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,var(--acc),#6366f1);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;flex-shrink:0"><i class="fas fa-file-alt"></i></div>'+'<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+escH(name)+'</div><div style="font-size:11px;color:var(--txm);margin-top:2px">'+dateStr+' · '+mCount+' 指标 · '+cCount+' 图表</div></div>'+'<div style="display:flex;gap:6px;flex-shrink:0"><button class="btn btn-p" style="padding:6px 14px;font-size:12px" onclick="event.stopPropagation();closeTplPicker();loadTemplate(\''+esc(name.replace(/'/g,"\\'"))+'\')"><i class="fas fa-download"></i> 加载</button><button class="bic" onclick="event.stopPropagation();deleteTemplate(\''+esc(name.replace(/'/g,"\\'"))+'\');openTplPicker()" title="删除"><i class="fas fa-trash-alt"></i></button></div></div>'}).join('')}modal.style.display='flex'}
+function closeTplPicker(){document.getElementById('tplPickerModal').style.display='none'}
+document.getElementById('tplPickerModal').addEventListener('click',function(e){if(e.target===this)closeTplPicker()});
+
+/* ==== MEDIA ASSETS ==== */
+var mediaItems=[];var mediaThumbH=200;
+function handleMediaDrop(e){handleMediaFiles(e.dataTransfer.files)}
+function handleMediaFiles(files){Array.from(files).forEach(f=>{if(!f.type.startsWith('image/')&&!f.type.startsWith('video/')){toast('不支持的文件类型 Unsupported file type','warning');return}var reader=new FileReader();reader.onload=ev=>{mediaItems.push({id:Date.now()+Math.random(),type:f.type.startsWith('image/')?'image':'video',src:ev.target.result,name:f.name,caption:f.name.replace(/\.[^.]+$/,'')});renderMediaGallery()};reader.readAsDataURL(f)});if(files.length)toast('已添加 '+files.length+' 个素材 Media added','success')}
+function addMediaEmbed(){var type=document.getElementById('mediaEmbedType').value;var url=document.getElementById('mediaEmbedUrl').value.trim();if(!url){toast('请输入链接 Please enter URL','warning');return}var embedUrl='';var platformName={youtube:'YouTube',bilibili:'Bilibili',tiktok:'抖音/TikTok',weibo:'微博',twitter:'Twitter/X',instagram:'Instagram',custom:'Link'}[type]||type;
+if(type==='youtube'){var vid=url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);embedUrl=vid?'https://www.youtube.com/embed/'+vid[1]:url}
+else if(type==='bilibili'){var bv=url.match(/BV\w+/);embedUrl=bv?'https://player.bilibili.com/player.html?bvid='+bv[0]+'&high_quality=1':url}
+else{embedUrl=url}
+mediaItems.push({id:Date.now()+Math.random(),type:'embed',platform:type,platformName:platformName,url:url,embedUrl:embedUrl,caption:platformName+' - '+url.substring(0,40)});
+document.getElementById('mediaEmbedUrl').value='';renderMediaGallery();toast(platformName+' 链接已添加 Link added','success')}
+function removeMedia(id){mediaItems=mediaItems.filter(m=>m.id!==id);renderMediaGallery();toast('素材已移除 Media removed','info')}
+function renderMediaGallery(){var g=document.getElementById('mediaGallery');if(!mediaItems.length){g.innerHTML='';return}
+var sizeCtrl='<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span style="font-size:12px;color:var(--tx2);font-weight:500"><i class="fas fa-expand-arrows-alt"></i> 素材尺寸 Size:</span><select id="mediaSizeSelect" class="fsel" style="width:120px;font-size:12px;padding:4px 8px" onchange="updateMediaSize(this.value)"><option value="150"'+(mediaThumbH===150?' selected':'')+'>小 Small</option><option value="200"'+(mediaThumbH===200?' selected':'')+'>中 Medium</option><option value="280"'+(mediaThumbH===280?' selected':'')+'>大 Large</option><option value="400"'+(mediaThumbH===400?' selected':'')+'>特大 XL</option></select></div>';
+g.innerHTML=sizeCtrl+'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax('+Math.max(180,mediaThumbH+40)+'px,1fr));gap:14px">'+mediaItems.map(m=>{var preview='';var h=mediaThumbH+'px';if(m.type==='image')preview='<img src="'+m.src+'" style="width:100%;height:'+h+';object-fit:cover;display:block" alt="'+esc(m.caption)+'">';else if(m.type==='video')preview='<video src="'+m.src+'" style="width:100%;height:'+h+';object-fit:cover;display:block" muted controls></video>';else preview='<div style="width:100%;height:'+h+';display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#f1f5f9,#e2e8f0);gap:6px"><i class="fab fa-'+({youtube:'youtube',bilibili:'bilibili',tiktok:'tiktok',weibo:'weibo',twitter:'twitter',instagram:'instagram'}[m.platform]||'link')+'" style="font-size:28px;color:var(--acc)"></i><span style="font-size:11px;color:var(--tx2);padding:0 8px;text-align:center;word-break:break-all">'+escH(m.platformName||'Link')+'</span></div>';return'<div style="border:1px solid var(--bd);border-radius:var(--rad);overflow:hidden;background:var(--bgc);position:relative" onmouseenter="this.querySelector(\'.media-rm\').style.opacity=1" onmouseleave="this.querySelector(\'.media-rm\').style.opacity=0">'+preview+'<button class="media-rm" onclick="removeMedia('+m.id+')" style="position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;border:none;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;z-index:2"><i class="fas fa-times"></i></button><div style="padding:8px 10px"><input type="text" placeholder="说明 Caption" value="'+esc(m.caption)+'" onchange="updateMediaCaption('+m.id+',this.value)" style="width:100%;border:none;background:transparent;font-size:12px;color:var(--tx2);outline:none;font-family:var(--font)"></div></div>'}).join('')+'</div>'}
+function updateMediaCaption(id,val){var item=mediaItems.find(m=>m.id===id);if(item)item.caption=val}
+function updateMediaSize(val){mediaThumbH=parseInt(val);renderMediaGallery()}
+
+/* ==== AI VISUAL RECOMMENDATION ==== */
+function previewBanner(){var bg=document.getElementById('bannerBgColor').value;var tc=document.getElementById('bannerTextColor').value;var ts=document.getElementById('bannerTitleSize').value;var ss=document.getElementById('bannerSubSize').value;var p=document.getElementById('bannerPreview');var inner=document.getElementById('bannerPreviewInner');var title=document.getElementById('rTitle').value||'报告标题 Report Title';var sub=document.getElementById('rSub').value||'副标题 Subtitle';inner.style.background=bg;document.getElementById('bp_title').style.cssText='font-weight:700;font-size:'+ts+'px;color:'+tc;document.getElementById('bp_title').textContent=title;document.getElementById('bp_sub').style.cssText='opacity:.7;margin-top:4px;font-size:'+ss+'px;color:'+tc;document.getElementById('bp_sub').textContent=sub;p.style.display='block'}
+quill=new Quill('#quillEd',{theme:'snow',modules:{toolbar:[[{header:[1,2,3,false]}],['bold','italic','underline','strike'],[{color:[]},{background:[]}],[{list:'ordered'},{list:'bullet'}],['blockquote','code-block'],['link','image'],['clean']]},placeholder:'在此编写报告正文内容...'});
+quill.root.innerHTML='<h2>报告正文 Report Content</h2><p><br></p><h3>1. 项目背景与目标</h3><p>本报告旨在对 [项目/业务名称] 在 [时间段] 内的表现进行回顾与分析。</p><p><br></p><h3>2. 主要发现</h3><p>2.1 <strong>核心指标</strong>：[在此填写关键数据发现]</p><p>2.2 <strong>趋势分析</strong>：[在此填写趋势说明]</p><p><br></p><h3>3. 行动计划</h3><p>3.1 [在此填写下一步行动项]</p><p>3.2 [在此填写优化建议]</p>';
+
+/* ==== JSON EXPORT/IMPORT ==== */
+function collectChartConfigs(){var configs=[];document.querySelectorAll('.chart-block').forEach(block=>{var cType=block.querySelector('.chart-type-val').value;var cTitle=block.querySelector('.chart-title-input').value;var cSize=block.querySelector('.chart-size-sel')?block.querySelector('.chart-size-sel').value:'medium';var cColor=block.querySelector('.chart-color-input')?block.querySelector('.chart-color-input').value:'#3182ce';var cNote=block.querySelector('.chart-note-input')?block.querySelector('.chart-note-input').value:'';var datasets=[];block.querySelectorAll('.dataset-block').forEach(ds=>{datasets.push({name:ds.querySelector('.ds-name')?ds.querySelector('.ds-name').value:'',data:ds.querySelector('.ds-data')?ds.querySelector('.ds-data').value:'',color:ds.querySelector('.ds-color')?ds.querySelector('.ds-color').value:'#3182ce',dsType:ds.querySelector('.ds-type-toggle')?ds.querySelector('.ds-type-toggle').value:'bar'})});if(cType==='table'){var tableData=block.querySelector('.chart-data-input')?block.querySelector('.chart-data-input').value:'';datasets=[{name:'table',data:tableData,color:'#3182ce',dsType:'bar'}]}configs.push({type:cType,title:cTitle,size:cSize,color:cColor,note:cNote,datasets})});return configs}
+
+function exportJSON(){var state={reportTitle:document.getElementById('rTitle').value,reportSubtitle:document.getElementById('rSub').value,reportDate:document.getElementById('rDate').value,reportAuthor:document.getElementById('rAuth').value,reportAudience:document.getElementById('rAud').value,reportVersion:document.getElementById('rVer').value,reportSummary:document.getElementById('rSum').value,metrics:collectMetrics(),charts:collectChartConfigs(),editorContent:quill.root.innerHTML,aiContent:document.getElementById('aiCont').innerHTML,aiVisible:document.getElementById('aiRes').classList.contains('vis')};var blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download=(state.reportTitle||'smartbrief')+'_state.json';a.click();URL.revokeObjectURL(url);toast('JSON exported','success')}
+
+function importJSON(event){var file=event.target.files[0];if(!file)return;var reader=new FileReader();reader.onload=e=>{try{var state=JSON.parse(e.target.result);if(state.reportTitle!==undefined)document.getElementById('rTitle').value=state.reportTitle;if(state.reportSubtitle!==undefined)document.getElementById('rSub').value=state.reportSubtitle;if(state.reportDate)document.getElementById('rDate').value=state.reportDate;if(state.reportAuthor!==undefined)document.getElementById('rAuth').value=state.reportAuthor;if(state.reportAudience!==undefined)document.getElementById('rAud').value=state.reportAudience;if(state.reportVersion!==undefined)document.getElementById('rVer').value=state.reportVersion;if(state.reportSummary!==undefined)document.getElementById('rSum').value=state.reportSummary;
+if(state.metrics&&state.metrics.length){var mc=document.getElementById('mGroups');mc.innerHTML='';state.metrics.forEach((g,gi)=>{addMGroup(g.name,g.color,g.metrics)})}
+if(state.charts&&state.charts.length){document.getElementById('chartsContainer').innerHTML='';Object.values(chartInst).forEach(c=>c.destroy());chartInst={};state.charts.forEach(cfg=>{var cid=chartCnt++;var cdiv=document.createElement('div');cdiv.className='chart-block';cdiv.dataset.chartId=cid;
+if(cfg.type==='table'){var tData=cfg.datasets&&cfg.datasets[0]?cfg.datasets[0].data:'';cdiv.innerHTML='<div class="cb-hdr"><span class="drag-h"><i class="fas fa-grip-vertical"></i></span><input type="text" class="fi chart-title-input" value="'+esc(cfg.title)+'" style="flex:1;max-width:300px"><select class="fsel chart-size-sel" style="width:100px">'+chartSizeOpts()+'</select><button class="bic" onclick="delChart(this)"><i class="fas fa-trash-alt"></i></button></div><input type="hidden" class="chart-type-val" value="table"><div class="fg" style="margin-bottom:12px"><textarea class="fta chart-data-input" rows="6" oninput="schedChart('+cid+')">'+escH(tData)+'</textarea></div><div class="fg" style="margin-bottom:12px"><input type="text" class="fi chart-note-input" value="'+esc(cfg.note||'')+'"></div><div class="tbl-wrap" id="chartPreview_'+cid+'" style="border:1px solid var(--bd);border-radius:var(--rad);padding:2px;background:var(--bgc);overflow:auto;max-height:400px"></div>';document.getElementById('chartsContainer').appendChild(cdiv);if(cfg.size)cdiv.querySelector('.chart-size-sel').value=cfg.size;updateTablePrev(cid)}
+else{var dsHTML='';(cfg.datasets||[]).forEach((ds,di)=>{dsHTML+='<div class="dataset-block" data-ds-index="'+di+'">'+(di>0?'<div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--bd)"></div>':'')+'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><label class="fl" style="margin:0;font-weight:600"><i class="fas fa-database"></i> '+t('dataset')+' '+(di+1)+'</label><input type="text" class="fi ds-name" value="'+esc(ds.name)+'" style="flex:1;max-width:160px" oninput="schedChart('+cid+')"><input type="color" class="ds-color" value="'+(ds.color||'#3182ce')+'" style="width:32px;height:28px;border:1px solid var(--bd);border-radius:4px;cursor:pointer;padding:1px" onchange="schedChart('+cid+')"><select class="fsel ds-type-toggle" style="width:80px;display:none" onchange="schedChart('+cid+')"><option value="bar"'+(ds.dsType==='bar'?' selected':'')+'>Bar</option><option value="line"'+(ds.dsType==='line'?' selected':'')+'>Line</option></select>'+(di>0?'<button class="bic" onclick="rmDataset(this,'+cid+')" style="width:28px;height:28px"><i class="fas fa-times"></i></button>':'')+'</div><div class="fg" style="margin-bottom:8px"><textarea class="fta ds-data" rows="'+(di===0?7:5)+'" oninput="schedChart('+cid+')">'+escH(ds.data)+'</textarea></div></div>'});
+cdiv.innerHTML='<div class="cb-hdr"><span class="drag-h"><i class="fas fa-grip-vertical"></i></span><input type="text" class="fi chart-title-input" value="'+esc(cfg.title)+'" style="flex:1;max-width:300px" oninput="schedChart('+cid+')"><select class="fsel chart-type-val" style="width:140px" onchange="schedChart('+cid+')">'+chartTypeOpts()+'</select><select class="fsel chart-size-sel" style="width:100px">'+chartSizeOpts()+'</select><input type="color" class="chart-color-input" value="'+(cfg.color||'#3182ce')+'" style="width:38px;height:34px;border:1px solid var(--bd);border-radius:6px;cursor:pointer;padding:2px" onchange="schedChart('+cid+')"><button class="bic" onclick="delChart(this)"><i class="fas fa-trash-alt"></i></button></div><div class="ccfg"><div><div class="ds-container" data-chart-id="'+cid+'">'+dsHTML+'</div><div class="bgrp" style="margin-top:4px;margin-bottom:12px"><button class="btn btn-g" onclick="addDataset('+cid+')" style="padding:5px 12px;font-size:12px"><i class="fas fa-plus"></i> '+t('addDataset')+'</button></div><div class="fg"><label class="fl">'+t('chartNote')+'</label><input type="text" class="fi chart-note-input" value="'+esc(cfg.note||'')+'"></div></div><div class="cprev"><canvas id="chartCanvas_'+cid+'"></canvas></div></div>';
+document.getElementById('chartsContainer').appendChild(cdiv);if(cfg.type)cdiv.querySelector('.chart-type-val').value=cfg.type;if(cfg.size)cdiv.querySelector('.chart-size-sel').value=cfg.size;setTimeout(()=>updateChart(cid),300)}});initChartSortable()}
+if(state.editorContent)quill.root.innerHTML=state.editorContent;if(state.aiContent){document.getElementById('aiCont').innerHTML=state.aiContent;if(state.aiVisible)document.getElementById('aiRes').classList.add('vis')}
+toast('JSON imported successfully','success')}catch(err){toast('JSON import failed: '+err.message,'error')}};reader.readAsText(file);event.target.value=''}
+
+/* ==== TEMPLATE SAVE/LOAD (localStorage) ==== */
+function getFullState(){return{reportTitle:document.getElementById('rTitle').value,reportSubtitle:document.getElementById('rSub').value,reportDate:document.getElementById('rDate').value,reportAuthor:document.getElementById('rAuth').value,reportAudience:document.getElementById('rAud').value,reportVersion:document.getElementById('rVer').value,reportSummary:document.getElementById('rSum').value,metrics:collectMetrics(),charts:collectChartConfigs(),editorContent:quill.root.innerHTML,aiContent:document.getElementById('aiCont').innerHTML,aiVisible:document.getElementById('aiRes').classList.contains('vis')}}
+
+function saveTemplate(){var name=document.getElementById('saveTplName').value.trim();if(!name){toast('请输入模板名称 Please enter template name','warning');document.getElementById('saveTplName').focus();return}var templates=JSON.parse(localStorage.getItem('smartbrief_templates')||'{}');templates[name]={state:getFullState(),savedAt:new Date().toISOString()};localStorage.setItem('smartbrief_templates',JSON.stringify(templates));document.getElementById('saveTplName').value='';renderSavedTemplates();toast('模板已保存: '+name,'success')}
+
+function loadTemplate(name){var templates=JSON.parse(localStorage.getItem('smartbrief_templates')||'{}');var tpl=templates[name];if(!tpl){toast('模板不存在','error');return}if(!confirm('加载模板将覆盖当前内容，确定？\nLoading template will overwrite current data. Continue?'))return;var state=tpl.state;if(state.reportTitle!==undefined)document.getElementById('rTitle').value=state.reportTitle;if(state.reportSubtitle!==undefined)document.getElementById('rSub').value=state.reportSubtitle;if(state.reportDate)document.getElementById('rDate').value=state.reportDate;if(state.reportAuthor!==undefined)document.getElementById('rAuth').value=state.reportAuthor;if(state.reportAudience!==undefined)document.getElementById('rAud').value=state.reportAudience;if(state.reportVersion!==undefined)document.getElementById('rVer').value=state.reportVersion;if(state.reportSummary!==undefined)document.getElementById('rSum').value=state.reportSummary;
+if(state.metrics&&state.metrics.length){var mc=document.getElementById('mGroups');mc.innerHTML='';state.metrics.forEach(g=>addMGroup(g.name,g.color,g.metrics))}else{document.getElementById('mGroups').innerHTML=''}
+if(state.editorContent)quill.root.innerHTML=state.editorContent;if(state.aiContent){document.getElementById('aiCont').innerHTML=state.aiContent;if(state.aiVisible)document.getElementById('aiRes').classList.add('vis');else document.getElementById('aiRes').classList.remove('vis')}
+// Restore charts via importJSON-style logic
+if(state.charts&&state.charts.length){document.getElementById('chartsContainer').innerHTML='';Object.values(chartInst).forEach(c=>c.destroy());chartInst={};state.charts.forEach(cfg=>{var cid=chartCnt++;var cdiv=document.createElement('div');cdiv.className='chart-block';cdiv.dataset.chartId=cid;
+if(cfg.type==='table'){var tData=cfg.datasets&&cfg.datasets[0]?cfg.datasets[0].data:'';cdiv.innerHTML='<div class="cb-hdr"><span class="drag-h"><i class="fas fa-grip-vertical"></i></span><input type="text" class="fi chart-title-input" value="'+esc(cfg.title)+'" style="flex:1;max-width:300px"><select class="fsel chart-size-sel" style="width:100px">'+chartSizeOpts()+'</select><button class="bic" onclick="delChart(this)"><i class="fas fa-trash-alt"></i></button></div><input type="hidden" class="chart-type-val" value="table"><div class="fg" style="margin-bottom:12px"><textarea class="fta chart-data-input" rows="6" oninput="schedChart('+cid+')">'+escH(tData)+'</textarea></div><div class="fg" style="margin-bottom:12px"><input type="text" class="fi chart-note-input" value="'+esc(cfg.note||'')+'"></div><div class="tbl-wrap" id="chartPreview_'+cid+'" style="border:1px solid var(--bd);border-radius:var(--rad);padding:2px;background:var(--bgc);overflow:auto;max-height:400px"></div>';document.getElementById('chartsContainer').appendChild(cdiv);if(cfg.size)cdiv.querySelector('.chart-size-sel').value=cfg.size;updateTablePrev(cid)}
+else{var dsHTML='';(cfg.datasets||[]).forEach((ds,di)=>{dsHTML+='<div class="dataset-block" data-ds-index="'+di+'">'+(di>0?'<div style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--bd)"></div>':'')+'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><label class="fl" style="margin:0;font-weight:600"><i class="fas fa-database"></i> '+t('dataset')+' '+(di+1)+'</label><input type="text" class="fi ds-name" value="'+esc(ds.name)+'" style="flex:1;max-width:160px" oninput="schedChart('+cid+')"><input type="color" class="ds-color" value="'+(ds.color||'#3182ce')+'" style="width:32px;height:28px;border:1px solid var(--bd);border-radius:4px;cursor:pointer;padding:1px" onchange="schedChart('+cid+')"><select class="fsel ds-type-toggle" style="width:80px;display:none" onchange="schedChart('+cid+')"><option value="bar"'+(ds.dsType==='bar'?' selected':'')+'>Bar</option><option value="line"'+(ds.dsType==='line'?' selected':'')+'>Line</option></select>'+(di>0?'<button class="bic" onclick="rmDataset(this,'+cid+')" style="width:28px;height:28px"><i class="fas fa-times"></i></button>':'')+'</div><div class="fg" style="margin-bottom:8px"><textarea class="fta ds-data" rows="'+(di===0?7:5)+'" oninput="schedChart('+cid+')">'+escH(ds.data)+'</textarea></div></div>'});
+cdiv.innerHTML='<div class="cb-hdr"><span class="drag-h"><i class="fas fa-grip-vertical"></i></span><input type="text" class="fi chart-title-input" value="'+esc(cfg.title)+'" style="flex:1;max-width:300px" oninput="schedChart('+cid+')"><select class="fsel chart-type-val" style="width:140px" onchange="schedChart('+cid+')">'+chartTypeOpts()+'</select><select class="fsel chart-size-sel" style="width:100px">'+chartSizeOpts()+'</select><input type="color" class="chart-color-input" value="'+(cfg.color||'#3182ce')+'" style="width:38px;height:34px;border:1px solid var(--bd);border-radius:6px;cursor:pointer;padding:2px" onchange="schedChart('+cid+')"><button class="bic" onclick="delChart(this)"><i class="fas fa-trash-alt"></i></button></div><div class="ccfg"><div><div class="ds-container" data-chart-id="'+cid+'">'+dsHTML+'</div><div class="bgrp" style="margin-top:4px;margin-bottom:12px"><button class="btn btn-g" onclick="addDataset('+cid+')" style="padding:5px 12px;font-size:12px"><i class="fas fa-plus"></i> '+t('addDataset')+'</button></div><div class="fg"><label class="fl">'+t('chartNote')+'</label><input type="text" class="fi chart-note-input" value="'+esc(cfg.note||'')+'"></div></div><div class="cprev"><canvas id="chartCanvas_'+cid+'"></canvas></div></div>';
+document.getElementById('chartsContainer').appendChild(cdiv);if(cfg.type)cdiv.querySelector('.chart-type-val').value=cfg.type;if(cfg.size)cdiv.querySelector('.chart-size-sel').value=cfg.size;setTimeout(()=>updateChart(cid),300)}});initChartSortable()}
+toast('模板已加载: '+name+' Template loaded','success')}
+
+function deleteTemplate(name){if(!confirm('确定删除模板 "'+name+'"？\nDelete template "'+name+'"?'))return;var templates=JSON.parse(localStorage.getItem('smartbrief_templates')||'{}');delete templates[name];localStorage.setItem('smartbrief_templates',JSON.stringify(templates));renderSavedTemplates();toast('模板已删除 Template deleted','info')}
+
+function renderSavedTemplates(){var templates=JSON.parse(localStorage.getItem('smartbrief_templates')||'{}');var container=document.getElementById('savedTplList');var keys=Object.keys(templates);if(!keys.length){container.innerHTML='<div style="text-align:center;padding:16px;color:var(--txm);font-size:13px"><i class="fas fa-inbox" style="margin-right:6px"></i>暂无已保存模板 No saved templates yet</div>';return}
+container.innerHTML=keys.map(name=>{var d=new Date(templates[name].savedAt);var dateStr=d.toLocaleDateString('zh-CN')+' '+d.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});return'<div class="saved-tpl-item"><i class="fas fa-file-alt" style="color:var(--acc);font-size:16px"></i><div class="stpl-name">'+escH(name)+'</div><div class="stpl-date">'+dateStr+'</div><div class="stpl-actions"><button class="btn btn-o" onclick="loadTemplate(\''+esc(name.replace(/'/g,"\\'"))+'\')" style="padding:4px 10px;font-size:11px"><i class="fas fa-download"></i> 加载 Load</button><button class="bic" onclick="deleteTemplate(\''+esc(name.replace(/'/g,"\\'"))+'\')" title="删除"><i class="fas fa-trash-alt"></i></button></div></div>'}).join('')}
+
+// Render saved templates on load
+document.addEventListener('DOMContentLoaded',()=>renderSavedTemplates());
+
+/* ==== REPORT GENERATION ==== */
+function genReportHTML(){
+  var title=document.getElementById('rTitle').value||'未命名报告';var subtitle=document.getElementById('rSub').value;var date=document.getElementById('rDate').value;var audience=document.getElementById('rAud').value;var author=document.getElementById('rAuth').value;var version=document.getElementById('rVer').value;var summary=document.getElementById('rSum').value;var metrics=collectMetrics();var editorContent=quill.root.innerHTML;var aiContent=document.getElementById('aiCont').innerHTML;var aiVisible=document.getElementById('aiRes').classList.contains('vis');var showAiWm=document.getElementById('aiWmToggle').checked;
+  var brandPrimary=document.getElementById('bPri').value;var brandSecondary=document.getElementById('bSec').value;var brandBgColor=document.getElementById('bBg').value;var brandTextColor=document.getElementById('bTx').value;var brandAccentColor=document.getElementById('bAcc').value;var brandFont=document.getElementById('bFont').value;var brandHeaderText=document.getElementById('bHdr').value;var confidential=document.getElementById('bConf').value;var confLevel=document.getElementById('bConfLvl').value;var watermark=document.getElementById('bWm').value;var footerText=document.getElementById('bFooter').value;
+  var bannerBg=document.getElementById('bannerBgColor').value;var bannerTc=document.getElementById('bannerTextColor').value;var bannerTs=document.getElementById('bannerTitleSize').value;var bannerSs=document.getElementById('bannerSubSize').value;
+
+  var moduleOrder=[];document.querySelectorAll('#modulesContainer .mod-card').forEach(m=>{moduleOrder.push(m.dataset.module)});
+
+  // KPI card settings
+  var kpiCardSize=document.getElementById('kpiCardSize')?document.getElementById('kpiCardSize').value:'medium';
+  var cardMinW={small:'160px',medium:'220px',large:'300px'}[kpiCardSize]||'220px';
+  var cardPad={small:'14px 16px',medium:'18px 20px',large:'24px 26px'}[kpiCardSize]||'18px 20px';
+  var valSize={small:'20px',medium:'26px',large:'34px'}[kpiCardSize]||'26px';
+  var labelSize={small:'11px',medium:'12px',large:'14px'}[kpiCardSize]||'12px';
+
+  // Metrics HTML - Unified KPI cards with value + trend + comparisons in one card
+  var metricsHTML='';metrics.forEach(g=>{if(!g.metrics.some(m=>m.name))return;
+  metricsHTML+='<div style="margin-bottom:24px"><h3 style="font-size:16px;font-weight:600;color:'+g.color+';margin-bottom:12px;padding-left:10px;border-left:3px solid '+g.color+'">'+escH(g.name)+'</h3><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax('+cardMinW+',1fr));gap:14px">';
+  g.metrics.forEach(m=>{if(!m.name)return;
+  var changeColor=m.change&&m.change.includes('-')?'#ef4444':'#10b981';
+  metricsHTML+='<div style="background:'+brandBgColor+';border:1px solid #e2e8f0;border-radius:12px;padding:'+cardPad+';border-top:3px solid '+g.color+';box-shadow:0 1px 3px rgba(0,0,0,.06)">';
+  metricsHTML+='<div style="font-size:'+labelSize+';color:#64748b;margin-bottom:6px">'+escH(m.name)+'</div>';
+  metricsHTML+='<div style="font-size:'+valSize+';font-weight:700;color:'+brandTextColor+';margin-bottom:4px">'+escH(m.value)+'</div>';
+  // Trend + change line
+  if(m.change){var tI=m.change.includes('-')?'&#9660;':'&#9650;';metricsHTML+='<div style="font-size:13px;font-weight:600;color:'+changeColor+'">'+tI+' '+escH(m.change)+'</div>'}
+  // Target progress bar
+  if(m.targetCalc){var pctMatch=m.targetCalc.match(/([\d.]+)/);var pctVal=pctMatch?parseFloat(pctMatch[1]):0;var barPct=Math.min(pctVal,100);var barColor;barColor=pctVal>=100?'#10b981':pctVal>=80?'#f59e0b':'#ef4444';metricsHTML+='<div style="margin-top:8px"><div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;margin-bottom:3px"><span>Target</span><span style="font-weight:600;color:'+barColor+'">'+escH(m.targetCalc)+'</span></div><div style="width:100%;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden"><div style="width:'+barPct+'%;height:100%;background:'+barColor+';border-radius:3px;transition:width .5s"></div></div></div>'}
+  // Comparison details
+  var details=[];
+  if(m.yoyCalc){var yc=m.yoyCalc.startsWith('+')?'#10b981':'#ef4444';details.push('<span style="color:'+yc+';font-weight:600">YoY '+escH(m.yoyCalc)+'</span>')}
+  if(m.momCalc){var mc2=m.momCalc.startsWith('+')?'#10b981':'#ef4444';details.push('<span style="color:'+mc2+';font-weight:600">MoM '+escH(m.momCalc)+'</span>')}
+  if(m.budgetCalc){var bc=m.budgetCalc.startsWith('+')?'#10b981':'#ef4444';details.push('<span style="color:'+bc+';font-weight:600">Budget '+escH(m.budgetCalc)+'</span>')}
+  if(m.customCalc||m.customChange){var cc2=m.customTrend==='up'?'#10b981':m.customTrend==='down'?'#ef4444':'#64748b';details.push('<span style="color:'+cc2+';font-weight:600">'+(m.customLabel?escH(m.customLabel)+' ':'')+escH(m.customCalc||m.customChange)+'</span>')}
+  if(details.length){metricsHTML+='<div style="margin-top:8px;padding-top:8px;border-top:1px solid #f1f5f9;display:flex;flex-wrap:wrap;gap:8px;font-size:12px">'+details.join('')+'</div>'}
+  metricsHTML+='</div>'});
+  metricsHTML+='</div></div>'});
+
+  // Charts HTML
+  var chartsHTML='',chartScripts='';
+  document.querySelectorAll('.chart-block').forEach((block,idx)=>{var cTitle=block.querySelector('.chart-title-input').value;var cType=block.querySelector('.chart-type-val').value;var cNote=block.querySelector('.chart-note-input')?block.querySelector('.chart-note-input').value:'';var sizeSelect=block.querySelector('.chart-size-sel');var chartSize=sizeSelect?sizeSelect.value:'medium';var maxW=getChartSizeMaxW(chartSize);
+  if(cType==='table'){var raw=block.querySelector('.chart-data-input').value.trim();var rows=raw.split('\n').map(l=>l.replace(/，/g,',').split(',').map(c=>c.trim()));if(rows.length){chartsHTML+='<div style="margin:20px auto;max-width:'+maxW+'"><h4 style="font-size:15px;font-weight:600;margin-bottom:10px;color:'+brandTextColor+'">'+escH(cTitle)+'</h4><table style="width:100%;border-collapse:collapse;font-size:13px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden"><thead><tr>';rows[0].forEach(h=>{chartsHTML+='<th style="background:'+brandAccentColor+';color:#fff;padding:10px 14px;text-align:left;font-weight:600">'+escH(h)+'</th>'});chartsHTML+='</tr></thead><tbody>';rows.slice(1).forEach((r,ri)=>{chartsHTML+='<tr style="background:'+(ri%2?'#f8fafc':brandBgColor)+'">';r.forEach(c=>{chartsHTML+='<td style="padding:8px 14px;border-bottom:1px solid #f1f5f9;color:'+brandTextColor+'">'+escH(c)+'</td>'});chartsHTML+='</tr>'});chartsHTML+='</tbody></table>';if(cNote)chartsHTML+='<div style="font-size:12px;color:#94a3b8;font-style:italic;margin-top:6px">'+escH(cNote)+'</div>';chartsHTML+='</div>'}}
+  else if(cType==='kpiOverview'){return}
+  else{var pd=parseChartBlockData(block.dataset.chartId);if(!pd.labels.length)return;var isPie=cType==='pie'||cType==='doughnut'||cType==='polarArea';var isStacked=cType==='stackedBar';var isCombo=cType==='combo';var rptChartType=isStacked?'bar':(isCombo?'bar':(cType==='scatter'?'scatter':cType));var cid='rptChart_'+idx;
+  chartsHTML+='<div style="max-width:'+maxW+';margin:20px auto"><canvas id="'+cid+'"></canvas>';if(cNote)chartsHTML+='<div style="font-size:12px;color:#94a3b8;font-style:italic;margin-top:6px;text-align:center">'+escH(cNote)+'</div>';chartsHTML+='</div>';
+  var rptDatasets=pd.datasets.map(ds=>{var pal=generatePalette(ds.color,pd.labels.length);var dsObj={label:ds.name,data:cType==='scatter'?pd.labels.map((_,i)=>({x:i,y:ds.data[i]||0})):ds.data,backgroundColor:isPie?pal:(ds.color+'44'),borderColor:isPie?'#fff':ds.color,borderWidth:2,tension:.3,fill:cType==='line'};if(isCombo)dsObj.type=ds.dsType||'bar';return dsObj});
+  var rptExtras=JSON.stringify(pd.extras||[]);
+  var rptOptions={responsive:true,plugins:{title:{display:true,text:cTitle,font:{size:14,weight:'600'}},legend:{display:pd.datasets.length>1||isPie||cType==='radar',position:'bottom'}}};if(!isPie&&cType!=='radar')rptOptions.scales={y:{beginAtZero:true,stacked:isStacked},x:{stacked:isStacked}};
+  chartScripts+="(function(){var extras="+rptExtras+";new Chart(document.getElementById('"+cid+"').getContext('2d'),{type:'"+rptChartType+"',data:{labels:"+JSON.stringify(pd.labels)+",datasets:"+JSON.stringify(rptDatasets)+"},options:Object.assign("+JSON.stringify(rptOptions)+",{plugins:Object.assign("+JSON.stringify(rptOptions.plugins||{})+",{tooltip:{callbacks:{afterBody:function(ctx){var idx=ctx[0].dataIndex;if(extras&&extras[idx]&&extras[idx].length){return extras[idx]}return[]}}}})})})})();\n"}});
+
+  // Watermark CSS
+  var watermarkCSS=watermark?".report-container::before{content:'"+watermark.replace(/'/g,"\\'")+"';position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);font-size:80px;color:rgba(0,0,0,0.04);font-weight:700;pointer-events:none;z-index:0;white-space:nowrap}":'';
+  var confLevelHTML=confLevel?'<div style="display:inline-block;padding:3px 12px;border-radius:4px;font-size:12px;font-weight:700;color:#fff;background:'+(confLevel==='绝密'?'#dc2626':(confLevel==='机密'?'#ea580c':(confLevel==='内部'?'#d97706':'#16a34a')))+';margin-bottom:12px">'+confLevel+'</div>':'';
+
+  // Media HTML for report
+  var mediaHTML='';if(mediaItems.length){mediaItems.forEach(m=>{if(m.type==='image')mediaHTML+='<div style="margin-bottom:16px;text-align:center"><img src="'+m.src+'" style="max-width:100%;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.1)" alt="'+esc(m.caption)+'"><div style="font-size:12px;color:#64748b;margin-top:6px;font-style:italic">'+escH(m.caption)+'</div></div>';else if(m.type==='video')mediaHTML+='<div style="margin-bottom:16px;text-align:center"><video src="'+m.src+'" controls style="max-width:100%;border-radius:8px"></video><div style="font-size:12px;color:#64748b;margin-top:6px;font-style:italic">'+escH(m.caption)+'</div></div>';else if(m.type==='embed')mediaHTML+='<div style="margin-bottom:16px"><div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px"><iframe src="'+esc(m.embedUrl)+'" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none" allowfullscreen></iframe></div><div style="font-size:12px;color:#64748b;margin-top:6px;font-style:italic">'+escH(m.caption)+'</div></div>'})}
+
+  // Collect AI saved blocks
+  var aiBlocksHTML='';
+  document.querySelectorAll('.ai-saved-block').forEach(function(block){
+    var content=block.querySelector('.ai-block-content');
+    if(content&&content.innerHTML.trim()){
+      var bg=block.style.background||'transparent';
+      aiBlocksHTML+='<div style="'+(bg&&bg!=='transparent'?'background:'+bg+';padding:20px;border-radius:10px;':'')+'margin-bottom:16px">'+(showAiWm?'<div style="font-size:11px;font-weight:600;color:#94a3b8;letter-spacing:.5px;margin-bottom:10px"><i class="fas fa-robot"></i> AI Generated</div>':'')+content.innerHTML+'</div>';
+    }
+  });
+  // Also include inline AI content if visible and no saved blocks
+  if(!aiBlocksHTML&&aiVisible&&aiContent){
+    aiBlocksHTML='<div style="margin-bottom:16px">'+(showAiWm?'<div style="font-size:11px;font-weight:600;color:#94a3b8;letter-spacing:.5px;margin-bottom:10px"><i class="fas fa-robot"></i> AI Generated</div>':'')+aiContent+'</div>';
+  }
+
+  var sectionMap={metrics:metricsHTML?'<div class="report-section"><h2>核心指标 Key Metrics</h2>'+metricsHTML+'</div>':'',charts:chartsHTML?'<div class="report-section"><h2>图表与数据 Charts & Data</h2>'+chartsHTML+'</div>':'',media:mediaHTML?'<div class="report-section"><h2>素材附件 Media Assets</h2>'+mediaHTML+'</div>':'',ai:aiBlocksHTML?'<div class="report-section">'+aiBlocksHTML+'</div>':'',editor:'<div class="report-section">'+editorContent+'</div>',basicinfo:'',template:''};
+  var orderedContent='';moduleOrder.forEach(mod=>{if(sectionMap[mod])orderedContent+=sectionMap[mod]});
+
+  return '<!DOCTYPE html>\n<html lang="zh-CN">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1.0">\n<title>'+escH(title)+'</title>\n<script src="https://cdn.tailwindcss.com"><\/script>\n<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"><\/script>\n<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">\n<link href="https://fonts.googleapis.com/css2?family='+brandFont.replace(/ /g,'+')+'&display=swap" rel="stylesheet">\n<style>\n:root{--brand-primary:'+brandPrimary+';--brand-secondary:'+brandSecondary+';--brand-accent:'+brandAccentColor+'}\n*{margin:0;padding:0;box-sizing:border-box}\nbody{font-family:\''+brandFont+'\',sans-serif;background:'+brandBgColor+';color:'+brandTextColor+';line-height:1.7}\n.report-container{max-width:900px;margin:0 auto;padding:40px 32px;position:relative}\n.report-header{text-align:center;margin-bottom:36px;padding:28px 32px;border-radius:12px;background:'+bannerBg+'}\n.report-title{font-size:'+bannerTs+'px;font-weight:700;color:'+bannerTc+';margin-bottom:6px}\n.report-subtitle{font-size:'+bannerSs+'px;color:'+bannerTc+';opacity:.75;margin-bottom:12px}\n.report-meta{display:flex;justify-content:center;gap:20px;flex-wrap:wrap;font-size:13px;color:'+bannerTc+';opacity:.6}\n.report-meta span{display:flex;align-items:center;gap:4px}\n.report-section{margin-bottom:28px}\n.report-section h2{font-size:20px;font-weight:600;color:var(--brand-accent);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid #f1f5f9}\n.report-section h3{font-size:16px;font-weight:600;color:'+brandTextColor+';margin-bottom:8px}\n.report-section p,.report-section li{font-size:14.5px;line-height:1.8;color:'+brandTextColor+'}\n.report-section ul,.report-section ol{padding-left:20px;margin-bottom:12px}\n.report-footer{margin-top:40px;padding-top:20px;border-top:2px solid #e2e8f0;text-align:center;font-size:12px;color:#94a3b8}\n'+watermarkCSS+'\n@media print{body{padding:0}.report-container{padding:20px;max-width:100%}.report-container::before{display:none}@page{margin:15mm}}\n@media(max-width:768px){.report-container{padding:20px 16px}.report-title{font-size:22px}}\n</style>\n</head>\n<body>\n<div class="report-container">\n'+
+  (logoData?'<div style="text-align:center;margin-bottom:16px"><img src="'+logoData+'" style="max-height:50px" alt="Logo"></div>\n':'')+
+  (brandHeaderText?'<div style="text-align:center;font-size:12px;color:#94a3b8;margin-bottom:8px">'+escH(brandHeaderText)+'</div>\n':'')+
+  (confLevelHTML?'<div style="text-align:center;margin-bottom:8px">'+confLevelHTML+'</div>\n':'')+
+  (confidential?'<div style="text-align:center;font-size:11px;color:#ef4444;font-weight:500;margin-bottom:16px;padding:6px;background:#fef2f2;border-radius:6px">'+escH(confidential)+'</div>\n':'')+
+  '<div class="report-header">\n<div class="report-title">'+escH(title)+'</div>\n'+
+  (subtitle?'<div class="report-subtitle">'+escH(subtitle)+'</div>\n':'')+
+  '<div class="report-meta">\n'+
+  (date?'<span><i class="far fa-calendar"></i> '+date+'</span>\n':'')+
+  (author?'<span><i class="far fa-user"></i> '+escH(author)+'</span>\n':'')+
+  (audience?'<span><i class="far fa-eye"></i> '+escH(audience)+'</span>\n':'')+
+  (version?'<span><i class="fas fa-code-branch"></i> '+escH(version)+'</span>\n':'')+
+  '</div>\n</div>\n'+
+  (summary?'<div class="report-section"><h2>报告摘要 Summary</h2><p>'+escH(summary)+'</p></div>\n':'')+
+  orderedContent+
+  '<div class="report-footer">\n'+
+  (confidential?'<div style="margin-bottom:8px;color:#ef4444">'+escH(confidential)+'</div>\n':'')+
+  '<div>'+(footerText?escH(footerText):'Generated by SmartBrief 智能简报 - '+new Date().toLocaleDateString('zh-CN'))+'</div>\n'+
+  '</div>\n</div>\n'+
+  (chartScripts?'<script>'+chartScripts+'<\/script>\n':'')+
+  '</body>\n</html>';
+}
+
+/* ==== EXPORT FUNCTIONS ==== */
+function previewRpt(){var html=genReportHTML();var c=document.getElementById('prevC');document.getElementById('prevIf').srcdoc=html;c.classList.add('vis');c.scrollIntoView({behavior:'smooth',block:'start'});toast('预览已更新','success')}
+function closePrev(){document.getElementById('prevC').classList.remove('vis')}
+function dlHTML(){var html=genReportHTML();var b=new Blob([html],{type:'text/html;charset=utf-8'});var u=URL.createObjectURL(b);var a=document.createElement('a');a.href=u;a.download=(document.getElementById('rTitle').value||'SmartBrief报告')+'.html';a.click();URL.revokeObjectURL(u);toast('HTML已下载','success')}
+function dlPDF(){toast('正在生成PDF...','info');var html=genReportHTML();var bodyMatch=html.match(/<body[^>]*>([\s\S]*)<\/body>/i);var w=document.createElement('div');w.style.cssText='font-family:DM Sans,sans-serif;color:#1e293b;line-height:1.7;max-width:900px;margin:0 auto;padding:20px;background:#fff';if(bodyMatch)w.innerHTML=bodyMatch[1];w.querySelectorAll('script').forEach(s=>s.remove());document.body.appendChild(w);html2pdf().set({margin:8,filename:(document.getElementById('rTitle').value||'SmartBrief报告')+'.pdf',image:{type:'jpeg',quality:.98},html2canvas:{scale:2,useCORS:true,letterRendering:true},jsPDF:{unit:'mm',format:'a4',orientation:'portrait'}}).from(w).save().then(()=>{w.remove();toast('PDF已下载','success')}).catch(()=>{w.remove();toast('PDF生成失败','error')})}
+function dlPNG(){toast('正在生成PNG...','info');var html=genReportHTML();var bodyMatch=html.match(/<body[^>]*>([\s\S]*)<\/body>/i);var w=document.createElement('div');w.style.cssText='font-family:DM Sans,sans-serif;color:#1e293b;line-height:1.7;max-width:900px;margin:0 auto;padding:40px;background:#fff';if(bodyMatch)w.innerHTML=bodyMatch[1];w.querySelectorAll('script').forEach(s=>s.remove());document.body.appendChild(w);html2canvas(w,{scale:2,useCORS:true}).then(canvas=>{w.remove();var a=document.createElement('a');a.download=(document.getElementById('rTitle').value||'SmartBrief报告')+'.png';a.href=canvas.toDataURL('image/png');a.click();toast('PNG已下载','success')}).catch(()=>{w.remove();toast('PNG生成失败','error')})}
+function printRpt(){var html=genReportHTML();var win=window.open('','_blank');win.document.write(html);win.document.close();win.onload=()=>win.print()}
+
+function resetAll(){if(!confirm('确定要重置所有内容？Reset all?'))return;document.getElementById('rTitle').value='';document.getElementById('rSub').value='';document.getElementById('rDate').valueAsDate=new Date();document.getElementById('rAud').value='';document.getElementById('rAuth').value='';document.getElementById('rVer').value='v1.0';document.getElementById('rSum').value='';document.getElementById('aiFocus').value='';document.getElementById('aiRes').classList.remove('vis');document.getElementById('aiCont').innerHTML='';document.getElementById('aiSavedBlocks').innerHTML='';document.getElementById('aiVisualPanel').style.display='none';_aiBlockCnt=0;closePrev();document.getElementById('chartsContainer').innerHTML='';Object.values(chartInst).forEach(c=>c.destroy());chartInst={};chartCnt=0;addChart();document.getElementById('mGroups').innerHTML='';grpCnt=0;quill.root.innerHTML='<h2>报告正文</h2><p>在此编写内容...</p>';toast('已重置 Reset complete','info');window.scrollTo({top:0,behavior:'smooth'})}
+
+/* ==== SHARE ==== */
+function genShare(){var pwd=document.getElementById('shPwd').value;var exp=document.getElementById('shExp');var expT=exp.options[exp.selectedIndex].text;var fid=Math.random().toString(36).substring(2,10)+Date.now().toString(36);document.getElementById('shLnk').textContent='https://smartbrief.example.com/share/'+fid;document.getElementById('shInfo').textContent='有效期: '+expT+(pwd?' · 已加密':' · 无密码');document.getElementById('shRes').classList.add('vis');toast('分享链接已生成','success')}
+
+/* ==== KEYBOARD ==== */
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();previewRpt()}if((e.ctrlKey||e.metaKey)&&e.key==='p'){e.preventDefault();printRpt()}})
+
+/* ==== AI VISUAL TOGGLE ==== */
+function toggleAiVisual(){
+  var vPanel=document.getElementById('aiVisualPanel');
+  if(vPanel.style.display==='block'){vPanel.style.display='none';return}
+  genAI('visual');
+}
+
+/* ==== ADD AI CONTENT TO REPORT (as separate blocks below AI section) ==== */
+var _aiBlockCnt=0;
+var _aiSavedColors=['#f8f6ff','#f0fdf4','#fef3c7','#fce7f3','#ecfeff','#fef2f2'];
+function addAiToReport(){
+  var aiContent=document.getElementById('aiCont').innerHTML;
+  if(!aiContent||!aiContent.trim()){toast('没有AI内容可添加 No AI content to add','warning');return}
+  var container=document.getElementById('aiSavedBlocks');
+  var bid=_aiBlockCnt++;
+  var bgColor=_aiSavedColors[bid%_aiSavedColors.length];
+  var div=document.createElement('div');
+  div.className='ai-saved-block';
+  div.id='aiBlock_'+bid;
+  div.style.cssText='background:'+bgColor+';border:1px solid #e2e8f0;border-radius:10px;padding:16px 18px;margin-bottom:12px;position:relative;animation:fadeIn .3s ease';
+  div.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:11px;font-weight:600;color:#7c3aed;text-transform:uppercase;letter-spacing:.5px"><i class="fas fa-robot"></i> AI 生成内容 #'+(bid+1)+'</div><div style="display:flex;gap:6px;align-items:center"><input type="color" value="'+bgColor.replace('#f8f6ff','#f8f6ff')+'" onchange="this.closest(\'.ai-saved-block\').style.background=this.value" style="width:26px;height:22px;border:1px solid #ddd;border-radius:4px;cursor:pointer;padding:0" title="更改背景色"><button onclick="this.closest(\'.ai-saved-block\').remove();toast(\'已删除 Removed\',\'info\')" style="background:none;border:1px solid #fca5a5;color:#ef4444;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:3px"><i class="fas fa-trash-alt"></i> 删除</button></div></div><div class="ai-block-content" contenteditable="true" style="color:#1e293b;font-size:14px;line-height:1.75;outline:none">'+aiContent+'</div>';
+  container.appendChild(div);
+  toast('AI内容已添加到报告 AI content added to report','success');
+}
+
+/* ==== BRAND STYLE PRESETS ==== */
+var _currentPreset='';
+function applyStylePreset(preset){
+  var presets={
+    formal:{pri:'#1a365d',sec:'#2c5282',bg:'#ffffff',tx:'#1e293b',acc:'#1a365d',font:'Source Serif 4',
+      bannerBg:'#1a365d',bannerTc:'#ffffff',titleSize:'32',subSize:'16',
+      headerText:'CONFIDENTIAL - INTERNAL USE ONLY',confLevel:'内部',
+      editorContent:'<h2>正式报告</h2><p><br></p><h3>一、项目概况</h3><p>本报告对 [项目名称] 在报告期内的运营情况进行系统性回顾，涵盖核心业务指标、财务表现及战略执行进展。</p><p><br></p><h3>二、核心发现</h3><p>经综合分析，本期业务运行总体平稳，各项指标基本达成既定目标。详见下文各章节论述。</p><p><br></p><h3>三、建议与展望</h3><p>建议管理层重点关注以下事项：[具体建议]。</p>'},
+    informal:{pri:'#7c3aed',sec:'#8b5cf6',bg:'#fffbeb',tx:'#44403c',acc:'#7c3aed',font:'DM Sans',
+      bannerBg:'linear-gradient(135deg,#7c3aed,#ec4899)',bannerTc:'#ffffff',titleSize:'36',subSize:'18',
+      headerText:'',confLevel:'',
+      editorContent:'<h2>Hey team! Here\'s the update</h2><p><br></p><h3>What\'s going well</h3><p>Things are looking pretty good overall. The numbers are trending up and the team is crushing it.</p><p><br></p><h3>What needs attention</h3><p>A few areas we should keep an eye on - nothing urgent, but worth discussing at the next standup.</p><p><br></p><h3>Next steps</h3><p>Let\'s sync up this week and figure out priorities. Exciting times ahead!</p>'},
+    marketing:{pri:'#dc2626',sec:'#ea580c',bg:'#ffffff',tx:'#18181b',acc:'#dc2626',font:'Montserrat',
+      bannerBg:'linear-gradient(135deg,#dc2626,#f97316)',bannerTc:'#ffffff',titleSize:'36',subSize:'18',
+      headerText:'',confLevel:'',
+      editorContent:'<h2>Campaign Performance Report</h2><p><br></p><h3>Executive Highlights</h3><p><strong>Total Reach:</strong> [数据] | <strong>Conversion Rate:</strong> [数据] | <strong>ROI:</strong> [数据]</p><p><br></p><h3>Channel Breakdown</h3><p>Social Media: [表现] | SEM: [表现] | Email: [表现]</p><p><br></p><h3>Optimization Recommendations</h3><p>Based on performance data, recommend reallocating budget to high-ROI channels.</p>'},
+    tech:{pri:'#0f172a',sec:'#1e293b',bg:'#f8fafc',tx:'#0f172a',acc:'#3b82f6',font:'Inter',
+      bannerBg:'#0f172a',bannerTc:'#38bdf8',titleSize:'28',subSize:'14',
+      headerText:'// TECHNICAL REPORT',confLevel:'',
+      editorContent:'<h2>Technical Report</h2><p><br></p><h3>System Status</h3><p><code>Status: OPERATIONAL</code> | Uptime: [数据]% | Latency: [数据]ms</p><p><br></p><h3>Key Metrics</h3><p>API calls: [数据] | Error rate: [数据]% | P99 response: [数据]ms</p><p><br></p><h3>Action Items</h3><p>1. [优化项] 2. [监控项] 3. [部署计划]</p>'},
+    elegant:{pri:'#78350f',sec:'#92400e',bg:'#fffbeb',tx:'#451a03',acc:'#b45309',font:'Lato',
+      bannerBg:'linear-gradient(135deg,#78350f,#b45309,#d97706)',bannerTc:'#ffffff',titleSize:'34',subSize:'16',
+      headerText:'',confLevel:'',
+      editorContent:'<h2>Annual Review</h2><p><br></p><h3>Overview</h3><p>This report presents a comprehensive review of our performance and strategic positioning for the year.</p><p><br></p><h3>Highlights</h3><p>Key achievements and milestones reached during the reporting period.</p><p><br></p><h3>Strategic Outlook</h3><p>Forward-looking perspectives and planned initiatives for the coming period.</p>'}
+  };
+  var p=presets[preset];if(!p)return;
+  _currentPreset=preset;
+  document.getElementById('bPri').value=p.pri;
+  document.getElementById('bSec').value=p.sec;
+  document.getElementById('bBg').value=p.bg;
+  document.getElementById('bTx').value=p.tx;
+  document.getElementById('bAcc').value=p.acc;
+  document.getElementById('bFont').value=p.font;
+  // Apply banner settings
+  document.getElementById('bannerBgColor').value=p.bannerBg.startsWith('#')?p.bannerBg:p.pri;
+  document.getElementById('bannerTextColor').value=p.bannerTc;
+  document.getElementById('bannerTitleSize').value=p.titleSize;
+  document.getElementById('bannerSubSize').value=p.subSize;
+  if(p.headerText!==undefined)document.getElementById('bHdr').value=p.headerText;
+  if(p.confLevel!==undefined)document.getElementById('bConfLvl').value=p.confLevel;
+  // Apply editor content
+  if(p.editorContent&&quill)quill.root.innerHTML=p.editorContent;
+  applyBrand();
+  // Also apply extra visual CSS vars
+  document.documentElement.style.setProperty('--acc',p.acc);
+  document.documentElement.style.setProperty('--acc-l',p.acc+'18');
+  toast('已应用「'+{formal:'正式',informal:'轻松',marketing:'营销',tech:'科技',elegant:'优雅'}[preset]+'」风格','success');
+}
+</script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"75124c326cb447fe934cde04713ae013","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"75124c326cb447fe934cde04713ae013","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"75124c326cb447fe934cde04713ae013","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"75124c326cb447fe934cde04713ae013","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
